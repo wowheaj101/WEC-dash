@@ -22,6 +22,10 @@ html, body {
   animation: blink 1.2s ease-in-out infinite;
 }
 
+.dot-blink-slow {
+  animation: blink 2.4s ease-in-out infinite;
+}
+
 /* leaderboard row hover — can't do :hover with inline styles */
 .lb-row {
   transition: background-color 0.15s;

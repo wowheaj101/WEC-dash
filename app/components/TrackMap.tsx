@@ -1,6 +1,10 @@
 'use client'
 
+import { useMemo } from 'react'
 import type { Car } from '@/app/types/race'
+import { CIRCUIT_SVG, SPA } from '@/app/data/trackPaths'
+import { CURRENT_SEASON } from '@/app/data/calendar'
+import { getRoundStatus } from '@/app/lib/getRoundStatus'
 
 const CLASS_COLOR: Record<string, string> = {
   HYPERCAR: '#ff4444',
@@ -8,8 +12,8 @@ const CLASS_COLOR: Record<string, string> = {
   LMGT3:    '#44cc55',
 }
 
-// Approximate positions on the SVG track (viewBox 0 0 480 380)
-const CAR_POSITIONS: Record<number, [number, number]> = {
+// Spa car positions (used only when Timing71 is live — circuit matched to active session)
+const SPA_CAR_POSITIONS: Record<number, [number, number]> = {
   2:  [335, 215],
   7:  [294, 270],
   6:  [258, 346],
@@ -22,57 +26,46 @@ const CAR_POSITIONS: Record<number, [number, number]> = {
   55: [258, 356],
 }
 
-// Simplified Spa-Francorchamps outline
-const TRACK_PATH = `
-  M 370,215
-  L 280,215
-  Q 245,215 228,233
-  Q 211,251 205,270
-  Q 199,289 215,296
-  Q 231,303 248,291
-  L 260,276
-  L 258,261
-  L 248,246
-  Q 232,218 210,186
-  L 190,152
-  L 170,112
-  L 152,79
-  Q 138,61 120,67
-  Q 102,73 110,93
-  Q 118,113 138,110
-  L 154,106
-  L 168,100
-  L 188,95
-  Q 210,91 235,105
-  Q 260,119 270,147
-  Q 280,175 268,197
-  Q 256,219 264,243
-  Q 272,267 295,272
-  L 318,272
-  Q 340,270 355,254
-  Q 370,238 370,215
-  Z
-`
-
 interface Props {
-  cars: Car[]
-  compact?: boolean
+  cars:        Car[]
+  compact?:    boolean
+  /** If provided, overrides the calendar-derived circuit */
+  circuitKey?: string
+  isLive?:     boolean
 }
 
-export default function TrackMap({ cars, compact }: Props) {
+export default function TrackMap({ cars, compact, circuitKey, isLive }: Props) {
+  const roundStatus = useMemo(() => getRoundStatus(CURRENT_SEASON), [])
+
+  // Pick which circuit to show:
+  // 1. Explicit override (e.g. from Timing71 service name matching)
+  // 2. When live → use active/current round's circuit
+  // 3. When not live → use next round's circuit
+  const resolvedKey = circuitKey
+    ?? (isLive ? roundStatus.current?.circuit : roundStatus.next?.circuit)
+    ?? roundStatus.current?.circuit
+
+  const circuit: import('@/app/data/trackPaths').CircuitSVG =
+    (resolvedKey ? CIRCUIT_SVG[resolvedKey] : undefined) ?? SPA
+  const label   = resolvedKey ?? 'Circuit de Spa-Francorchamps'
+
+  // Only render car dots when we're live AND we're showing the Spa circuit
+  // (car positions are hardcoded for Spa; future: interpolate from sector data)
+  const showCars = isLive && (!resolvedKey || resolvedKey === 'Circuit de Spa-Francorchamps')
+
   return (
     <div style={{
-      background:   '#0f0f0f',
-      border:       '0.5px solid #2a2a2a',
-      borderRadius: 8,
-      padding:      compact ? 8 : 12,
-      display:      'flex',
-      flexDirection:'column',
-      gap:          8,
+      background:    '#0f0f0f',
+      border:        '0.5px solid #2a2a2a',
+      borderRadius:  8,
+      padding:       compact ? 8 : 12,
+      display:       'flex',
+      flexDirection: 'column',
+      gap:           8,
     }}>
       {!compact && (
         <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: 1 }}>
-          트랙맵 — Spa-Francorchamps
+          트랙맵 — {label}
         </div>
       )}
 
@@ -82,37 +75,51 @@ export default function TrackMap({ cars, compact }: Props) {
         preserveAspectRatio="xMidYMid meet"
       >
         {/* Pit lane */}
-        <line x1="280" y1="211" x2="370" y2="211"
-          stroke="#ff9900" strokeWidth="3" strokeDasharray="4,3" opacity="0.35" />
+        <path d={circuit.pitLane} stroke="#ff9900" strokeWidth="3"
+          strokeDasharray="4,3" fill="none" opacity="0.35" />
 
-        {/* Track border (outer glow) */}
-        <path d={TRACK_PATH} stroke="#1e1e1e" strokeWidth={compact ? 10 : 14}
+        {/* Track border (glow) */}
+        <path d={circuit.path} stroke="#1e1e1e"
+          strokeWidth={compact ? 10 : 14}
           fill="none" strokeLinecap="round" strokeLinejoin="round" />
+
         {/* Track surface */}
-        <path d={TRACK_PATH} stroke="#2e2e2e" strokeWidth={compact ? 7 : 10}
+        <path d={circuit.path} stroke="#2e2e2e"
+          strokeWidth={compact ? 7 : 10}
           fill="none" strokeLinecap="round" strokeLinejoin="round" />
 
-        {/* Start/Finish line */}
-        <line x1="370" y1="207" x2="370" y2="223" stroke="#fff" strokeWidth="2" />
+        {/* S/F line */}
+        <line
+          x1={circuit.sf[0]} y1={circuit.sf[1]}
+          x2={circuit.sf[2]} y2={circuit.sf[3]}
+          stroke="#fff" strokeWidth="2"
+        />
         {!compact && (
-          <text x="374" y="217" fontSize="8" fill="#888" dominantBaseline="middle">S/F</text>
+          <text
+            x={circuit.sf[2] + 3} y={(circuit.sf[1] + circuit.sf[3]) / 2}
+            fontSize="8" fill="#888" dominantBaseline="middle"
+          >
+            S/F
+          </text>
         )}
 
         {/* Sector markers */}
-        <line x1="148" y1="75" x2="157" y2="83"
-          stroke="#ffff55" strokeWidth="1.5" opacity="0.6" />
-        <line x1="264" y1="239" x2="272" y2="247"
-          stroke="#ffff55" strokeWidth="1.5" opacity="0.6" />
-        {!compact && (
-          <>
-            <text x="105" y="70" fontSize="7" fill="#ffff55" opacity="0.5">S2</text>
-            <text x="274" y="252" fontSize="7" fill="#ffff55" opacity="0.5">S3</text>
-          </>
+        {circuit.sectors.map(([x1, y1, x2, y2], i) => (
+          <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}
+            stroke="#ffff55" strokeWidth="1.5" opacity="0.6" />
+        ))}
+
+        {/* Circuit label (compact mode, top-left) */}
+        {compact && (
+          <text x="12" y="18" fontSize="7" fill="#444"
+            style={{ fontFamily: 'monospace' }}>
+            {label.replace('Circuit de ', '').replace(' International Circuit', '')}
+          </text>
         )}
 
-        {/* Car dots */}
-        {cars.map(car => {
-          const [x, y] = CAR_POSITIONS[car.carNum] ?? [240, 190]
+        {/* Car dots — only when live on the Spa circuit */}
+        {showCars && cars.map(car => {
+          const [x, y]  = SPA_CAR_POSITIONS[car.carNum] ?? [240, 190]
           const color   = CLASS_COLOR[car.carClass]
           const isPit   = car.status === 'PIT'
           const isOut   = car.status === 'OUT'
@@ -137,27 +144,31 @@ export default function TrackMap({ cars, compact }: Props) {
             </g>
           )
         })}
+
+        {/* "No live data" overlay when not live */}
+        {!showCars && !compact && (
+          <text x="240" y="340" textAnchor="middle"
+            fontSize="9" fill="#333" style={{ fontFamily: 'monospace' }}>
+            라이브 연결 시 차량 위치 표시
+          </text>
+        )}
       </svg>
 
       {/* Class legend */}
       {!compact && (
-        <div style={{ display:'flex', gap:12, flexWrap:'wrap', fontSize:9, color:'#555' }}>
-          {(['HYPERCAR','LMP2','LMGT3'] as const).map(cls => (
-            <span key={cls} style={{ display:'flex', alignItems:'center', gap:4 }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 9, color: '#555' }}>
+          {(['HYPERCAR', 'LMP2', 'LMGT3'] as const).map(cls => (
+            <span key={cls} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <span style={{
-                width:8, height:8, borderRadius:'50%',
-                background: CLASS_COLOR[cls], display:'inline-block',
+                width: 8, height: 8, borderRadius: '50%',
+                background: CLASS_COLOR[cls], display: 'inline-block',
               }} />
               {cls}
             </span>
           ))}
-          <span style={{ display:'flex', alignItems:'center', gap:4 }}>
-            <span style={{ width:8, height:8, borderRadius:'50%', background:'#ff9900', display:'inline-block' }} />
-            PIT
-          </span>
-          <span style={{ display:'flex', alignItems:'center', gap:4 }}>
-            <span style={{ width:16, height:2, background:'#ff9900', display:'inline-block', opacity:0.5 }} />
-            피트 레인
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 16, height: 2, background: '#ff9900', display: 'inline-block', opacity: 0.5 }} />
+            PIT LANE
           </span>
         </div>
       )}

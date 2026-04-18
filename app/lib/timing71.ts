@@ -84,9 +84,11 @@ export class Timing71Client {
     const relayUrl = await pickRelay()
 
     // autobahn은 브라우저 전용 → dynamic import (SSR 제외)
-    const ab = await import('autobahn')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ab = await import('autobahn-browser') as any
+    const AB: typeof import('autobahn') = ab.default ?? ab
 
-    const conn = new ab.Connection({
+    const conn = new AB.Connection({
       url:                 relayUrl,
       realm:               'timing',
       max_retries:         20,

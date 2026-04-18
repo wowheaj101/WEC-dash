@@ -1,0 +1,184 @@
+{
+  "meta": {
+    "id": "2025-r3",
+    "year": 2025,
+    "round": 3,
+    "name": "6 Hours of Spa-Francorchamps",
+    "circuit": "Circuit de Spa-Francorchamps",
+    "countryFlag": "🇧🇪",
+    "duration": "6h",
+    "date": "2025-05-10",
+    "snapshots": 4,
+    "updatedAt": 1746889200000
+  },
+  "snapshots": [
+    {
+      "idx": 0,
+      "ts": 1746871200000,
+      "raceInfo": {
+        "name": "2025 6 Hours of Spa-Francorchamps",
+        "round": 3,
+        "elapsed": "01:00:00",
+        "total": "06:00:00",
+        "remaining": "05:00:00",
+        "flag": "GREEN",
+        "weather": { "air": 16, "track": 24, "humidity": 68, "condition": "cloudy" }
+      },
+      "stats": {
+        "leaderLap": 30,
+        "totalPitstops": 6,
+        "fastestLap": { "time": "1:58.112", "carNum": 2, "team": "Cadillac Racing" },
+        "safetyCars": 0,
+        "safetyCarlap": 0
+      },
+      "cars": [
+        { "pos": 1,  "clsPos": 1, "carClass": "HYPERCAR", "carNum": 2,  "team": "Cadillac Racing",     "drivers": "Bamber / Lynn",          "tire": "S", "laps": 30, "lastLap": "1:58.112", "bestLap": "1:58.112", "gap": "LEAD",     "interval": "—",     "pitstops": 0, "status": "RUN", "isFastestLap": true  },
+        { "pos": 2,  "clsPos": 2, "carClass": "HYPERCAR", "carNum": 7,  "team": "Toyota Gazoo Racing", "drivers": "Conway / Kobayashi",     "tire": "M", "laps": 30, "lastLap": "1:58.440", "bestLap": "1:58.330", "gap": "+00:08.2", "interval": "+8.2",  "pitstops": 0, "status": "RUN", "isFastestLap": false },
+        { "pos": 3,  "clsPos": 3, "carClass": "HYPERCAR", "carNum": 6,  "team": "Porsche Penske",      "drivers": "Estre / Lotterer",       "tire": "S", "laps": 30, "lastLap": "1:58.780", "bestLap": "1:58.680", "gap": "+00:32.5", "interval": "+24.3", "pitstops": 0, "status": "RUN", "isFastestLap": false },
+        { "pos": 4,  "clsPos": 4, "carClass": "HYPERCAR", "carNum": 8,  "team": "Toyota Gazoo Racing", "drivers": "Buemi / Hartley",        "tire": "S", "laps": 29, "lastLap": "1:59.100", "bestLap": "1:58.900", "gap": "+01:15.3", "interval": "+42.8", "pitstops": 1, "status": "RUN", "isFastestLap": false },
+        { "pos": 5,  "clsPos": 1, "carClass": "LMP2",     "carNum": 10, "team": "United Autosports",   "drivers": "Owen / Hanson",          "tire": "S", "laps": 28, "lastLap": "2:01.550", "bestLap": "2:01.330", "gap": "LEAD",     "interval": "—",     "pitstops": 0, "status": "RUN", "isFastestLap": false },
+        { "pos": 6,  "clsPos": 2, "carClass": "LMP2",     "carNum": 22, "team": "United Autosports",   "drivers": "Albuquerque / Filipe",   "tire": "M", "laps": 28, "lastLap": "2:02.010", "bestLap": "2:01.800", "gap": "+00:22.4", "interval": "+22.4", "pitstops": 0, "status": "RUN", "isFastestLap": false },
+        { "pos": 7,  "clsPos": 3, "carClass": "LMP2",     "carNum": 37, "team": "Cool Racing",         "drivers": "Doquin / Laurent",       "tire": "S", "laps": 27, "lastLap": "2:02.880", "bestLap": "2:02.500", "gap": "+1 Lap",   "interval": "+1 Lap","pitstops": 1, "status": "RUN", "isFastestLap": false },
+        { "pos": 8,  "clsPos": 1, "carClass": "LMGT3",    "carNum": 77, "team": "Proton Competition",  "drivers": "Cairoli / Lietz",        "tire": "S", "laps": 26, "lastLap": "2:08.220", "bestLap": "2:08.010", "gap": "LEAD",     "interval": "—",     "pitstops": 0, "status": "RUN", "isFastestLap": false },
+        { "pos": 9,  "clsPos": 2, "carClass": "LMGT3",    "carNum": 91, "team": "Porsche GT Team",     "drivers": "Pilet / Christensen",    "tire": "M", "laps": 26, "lastLap": "2:08.650", "bestLap": "2:08.200", "gap": "+00:18.1", "interval": "+18.1", "pitstops": 0, "status": "RUN", "isFastestLap": false },
+        { "pos": 10, "clsPos": 3, "carClass": "LMGT3",    "carNum": 55, "team": "AF Corse",            "drivers": "Fuoco / Molina",         "tire": "S", "laps": 25, "lastLap": "2:09.100", "bestLap": "2:08.900", "gap": "+1 Lap",   "interval": "+1 Lap","pitstops": 1, "status": "RUN", "isFastestLap": false }
+      ],
+      "messages": [
+        { "id": 1, "timestamp": "00:58:44", "type": "pit",     "carNum": 8,  "carClass": "HYPERCAR", "text": "#8 Toyota Gazoo Racing PIT IN — Lap 29" },
+        { "id": 2, "timestamp": "00:55:20", "type": "pit",     "carNum": 37, "carClass": "LMP2",     "text": "#37 Cool Racing PIT IN — Lap 27" },
+        { "id": 3, "timestamp": "00:50:11", "type": "pit",     "carNum": 55, "carClass": "LMGT3",    "text": "#55 AF Corse PIT IN — Lap 25" },
+        { "id": 4, "timestamp": "00:02:10", "type": "general",                                        "text": "GREEN FLAG — Race started at Spa-Francorchamps" }
+      ]
+    },
+    {
+      "idx": 1,
+      "ts": 1746878400000,
+      "raceInfo": {
+        "name": "2025 6 Hours of Spa-Francorchamps",
+        "round": 3,
+        "elapsed": "03:00:00",
+        "total": "06:00:00",
+        "remaining": "03:00:00",
+        "flag": "GREEN",
+        "weather": { "air": 18, "track": 28, "humidity": 62, "condition": "sunny" }
+      },
+      "stats": {
+        "leaderLap": 92,
+        "totalPitstops": 24,
+        "fastestLap": { "time": "1:57.843", "carNum": 2, "team": "Cadillac Racing" },
+        "safetyCars": 1,
+        "safetyCarlap": 55
+      },
+      "cars": [
+        { "pos": 1,  "clsPos": 1, "carClass": "HYPERCAR", "carNum": 2,  "team": "Cadillac Racing",     "drivers": "Bamber / Lynn",          "tire": "M", "laps": 92, "lastLap": "1:57.843", "bestLap": "1:57.843", "gap": "LEAD",     "interval": "—",      "pitstops": 3, "status": "RUN", "isFastestLap": true  },
+        { "pos": 2,  "clsPos": 2, "carClass": "HYPERCAR", "carNum": 7,  "team": "Toyota Gazoo Racing", "drivers": "Conway / Kobayashi",     "tire": "H", "laps": 92, "lastLap": "1:58.211", "bestLap": "1:57.991", "gap": "+00:12.4", "interval": "+12.4",  "pitstops": 3, "status": "RUN", "isFastestLap": false },
+        { "pos": 3,  "clsPos": 3, "carClass": "HYPERCAR", "carNum": 6,  "team": "Porsche Penske",      "drivers": "Estre / Lotterer",       "tire": "S", "laps": 91, "lastLap": "1:58.502", "bestLap": "1:58.502", "gap": "+01:08.2", "interval": "+55.8",  "pitstops": 4, "status": "RUN", "isFastestLap": false },
+        { "pos": 4,  "clsPos": 4, "carClass": "HYPERCAR", "carNum": 8,  "team": "Toyota Gazoo Racing", "drivers": "Buemi / Hartley",        "tire": "S", "laps": 91, "lastLap": "1:58.901", "bestLap": "1:58.210", "gap": "+01:44.1", "interval": "+35.9",  "pitstops": 3, "status": "RUN", "isFastestLap": false },
+        { "pos": 5,  "clsPos": 1, "carClass": "LMP2",     "carNum": 10, "team": "United Autosports",   "drivers": "Owen / Hanson",          "tire": "S", "laps": 88, "lastLap": "2:01.334", "bestLap": "2:01.101", "gap": "LEAD",     "interval": "—",      "pitstops": 3, "status": "RUN", "isFastestLap": false },
+        { "pos": 6,  "clsPos": 2, "carClass": "LMP2",     "carNum": 22, "team": "United Autosports",   "drivers": "Albuquerque / Filipe",   "tire": "S", "laps": 88, "lastLap": "2:01.889", "bestLap": "2:01.445", "gap": "+00:45.1", "interval": "+45.1",  "pitstops": 3, "status": "RUN", "isFastestLap": false },
+        { "pos": 7,  "clsPos": 3, "carClass": "LMP2",     "carNum": 37, "team": "Cool Racing",         "drivers": "Doquin / Laurent",       "tire": "M", "laps": 87, "lastLap": "2:02.441", "bestLap": "2:02.100", "gap": "+1 Lap",   "interval": "+1 Lap", "pitstops": 4, "status": "RUN", "isFastestLap": false },
+        { "pos": 8,  "clsPos": 1, "carClass": "LMGT3",    "carNum": 77, "team": "Proton Competition",  "drivers": "Cairoli / Lietz",        "tire": "S", "laps": 83, "lastLap": "2:08.112", "bestLap": "2:07.889", "gap": "LEAD",     "interval": "—",      "pitstops": 3, "status": "RUN", "isFastestLap": false },
+        { "pos": 9,  "clsPos": 2, "carClass": "LMGT3",    "carNum": 91, "team": "Porsche GT Team",     "drivers": "Pilet / Christensen",    "tire": "H", "laps": 83, "lastLap": "2:08.554", "bestLap": "2:08.012", "gap": "+00:22.8", "interval": "+22.8",  "pitstops": 3, "status": "RUN", "isFastestLap": false },
+        { "pos": 10, "clsPos": 3, "carClass": "LMGT3",    "carNum": 55, "team": "AF Corse",            "drivers": "Fuoco / Molina",         "tire": "S", "laps": 82, "lastLap": "2:09.001", "bestLap": "2:08.770", "gap": "+1 Lap",   "interval": "+1 Lap", "pitstops": 4, "status": "RUN", "isFastestLap": false }
+      ],
+      "messages": [
+        { "id": 10, "timestamp": "02:58:20", "type": "pit",          "carNum": 6,  "carClass": "HYPERCAR", "text": "#6 Porsche Penske OUT LAP — Lap 91" },
+        { "id": 9,  "timestamp": "02:56:44", "type": "pit",          "carNum": 6,  "carClass": "HYPERCAR", "text": "#6 Porsche Penske PIT IN — Lap 90 (driver change, 46.2s)" },
+        { "id": 8,  "timestamp": "02:50:01", "type": "fastest",      "carNum": 2,  "carClass": "HYPERCAR", "text": "#2 Cadillac Racing sets FASTEST LAP — 1:57.843" },
+        { "id": 7,  "timestamp": "02:20:00", "type": "general",                                             "text": "GREEN FLAG — Safety Car period ends (Lap 58)" },
+        { "id": 6,  "timestamp": "01:52:30", "type": "safety_car",                                          "text": "SAFETY CAR deployed — debris on track (Lap 55)" },
+        { "id": 5,  "timestamp": "01:48:11", "type": "driver_change","carNum": 8,  "carClass": "HYPERCAR", "text": "#8 Toyota Gazoo Racing driver change: Hartley OUT → Buemi IN" },
+        { "id": 4,  "timestamp": "01:40:22", "type": "pit",          "carNum": 77, "carClass": "LMGT3",    "text": "#77 Proton Competition OUT — Lap 52" },
+        { "id": 3,  "timestamp": "01:15:44", "type": "driver_change","carNum": 6,  "carClass": "HYPERCAR", "text": "#6 Porsche Penske driver change: Estre OUT → Lotterer IN" },
+        { "id": 2,  "timestamp": "00:58:44", "type": "pit",          "carNum": 8,  "carClass": "HYPERCAR", "text": "#8 Toyota Gazoo Racing PIT IN — Lap 29" },
+        { "id": 1,  "timestamp": "00:02:10", "type": "general",                                             "text": "GREEN FLAG — Race started at Spa-Francorchamps" }
+      ]
+    },
+    {
+      "idx": 2,
+      "ts": 1746884700000,
+      "raceInfo": {
+        "name": "2025 6 Hours of Spa-Francorchamps",
+        "round": 3,
+        "elapsed": "04:45:00",
+        "total": "06:00:00",
+        "remaining": "01:15:00",
+        "flag": "YELLOW",
+        "weather": { "air": 17, "track": 26, "humidity": 70, "condition": "cloudy" }
+      },
+      "stats": {
+        "leaderLap": 143,
+        "totalPitstops": 38,
+        "fastestLap": { "time": "1:57.843", "carNum": 2, "team": "Cadillac Racing" },
+        "safetyCars": 2,
+        "safetyCarlap": 122
+      },
+      "cars": [
+        { "pos": 1,  "clsPos": 1, "carClass": "HYPERCAR", "carNum": 7,  "team": "Toyota Gazoo Racing", "drivers": "Conway / Kobayashi",     "tire": "S", "laps": 143, "lastLap": "1:58.100", "bestLap": "1:57.991", "gap": "LEAD",     "interval": "—",      "pitstops": 5, "status": "RUN", "isFastestLap": false },
+        { "pos": 2,  "clsPos": 2, "carClass": "HYPERCAR", "carNum": 2,  "team": "Cadillac Racing",     "drivers": "Bamber / Lynn",          "tire": "H", "laps": 143, "lastLap": "1:58.320", "bestLap": "1:57.843", "gap": "+00:04.8", "interval": "+4.8",   "pitstops": 5, "status": "RUN", "isFastestLap": true  },
+        { "pos": 3,  "clsPos": 3, "carClass": "HYPERCAR", "carNum": 8,  "team": "Toyota Gazoo Racing", "drivers": "Buemi / Hartley",        "tire": "S", "laps": 142, "lastLap": "—",        "bestLap": "1:58.210", "gap": "+01:22.5", "interval": "+1:17.7","pitstops": 5, "status": "PIT", "isFastestLap": false },
+        { "pos": 4,  "clsPos": 4, "carClass": "HYPERCAR", "carNum": 6,  "team": "Porsche Penske",      "drivers": "Estre / Lotterer",       "tire": "M", "laps": 141, "lastLap": "1:59.001", "bestLap": "1:58.502", "gap": "+02:10.4", "interval": "+47.9",  "pitstops": 6, "status": "RUN", "isFastestLap": false },
+        { "pos": 5,  "clsPos": 1, "carClass": "LMP2",     "carNum": 22, "team": "United Autosports",   "drivers": "Albuquerque / Filipe",   "tire": "S", "laps": 137, "lastLap": "2:01.220", "bestLap": "2:01.101", "gap": "LEAD",     "interval": "—",      "pitstops": 4, "status": "RUN", "isFastestLap": false },
+        { "pos": 6,  "clsPos": 2, "carClass": "LMP2",     "carNum": 10, "team": "United Autosports",   "drivers": "Owen / Hanson",          "tire": "M", "laps": 136, "lastLap": "2:01.780", "bestLap": "2:01.330", "gap": "+00:38.2", "interval": "+38.2",  "pitstops": 5, "status": "RUN", "isFastestLap": false },
+        { "pos": 7,  "clsPos": 3, "carClass": "LMP2",     "carNum": 37, "team": "Cool Racing",         "drivers": "Doquin / Laurent",       "tire": "S", "laps": 135, "lastLap": "2:02.200", "bestLap": "2:02.100", "gap": "+1 Lap",   "interval": "+1 Lap", "pitstops": 5, "status": "RUN", "isFastestLap": false },
+        { "pos": 8,  "clsPos": 1, "carClass": "LMGT3",    "carNum": 91, "team": "Porsche GT Team",     "drivers": "Pilet / Christensen",    "tire": "S", "laps": 129, "lastLap": "2:08.001", "bestLap": "2:07.880", "gap": "LEAD",     "interval": "—",      "pitstops": 4, "status": "RUN", "isFastestLap": false },
+        { "pos": 9,  "clsPos": 2, "carClass": "LMGT3",    "carNum": 77, "team": "Proton Competition",  "drivers": "Cairoli / Lietz",        "tire": "H", "laps": 128, "lastLap": "2:08.440", "bestLap": "2:07.889", "gap": "+00:31.5", "interval": "+31.5",  "pitstops": 5, "status": "RUN", "isFastestLap": false },
+        { "pos": 10, "clsPos": 3, "carClass": "LMGT3",    "carNum": 55, "team": "AF Corse",            "drivers": "Fuoco / Molina",         "tire": "S", "laps": 127, "lastLap": "2:09.110", "bestLap": "2:08.770", "gap": "+1 Lap",   "interval": "+1 Lap", "pitstops": 5, "status": "RUN", "isFastestLap": false }
+      ],
+      "messages": [
+        { "id": 18, "timestamp": "04:44:05", "type": "pit",          "carNum": 8,  "carClass": "HYPERCAR", "text": "#8 Toyota Gazoo Racing PIT IN — Lap 142" },
+        { "id": 17, "timestamp": "04:20:00", "type": "general",                                             "text": "GREEN FLAG — Safety Car period ends (Lap 125)" },
+        { "id": 16, "timestamp": "04:02:10", "type": "safety_car",                                          "text": "SAFETY CAR deployed — #6 Porsche contact at Eau Rouge (Lap 122)" },
+        { "id": 15, "timestamp": "03:55:22", "type": "driver_change","carNum": 77, "carClass": "LMGT3",    "text": "#77 Proton Competition driver change: Lietz OUT → Cairoli IN" },
+        { "id": 14, "timestamp": "03:48:30", "type": "fastest",      "carNum": 7,  "carClass": "HYPERCAR", "text": "#7 Toyota Gazoo Racing sets sector record at Pouhon" },
+        { "id": 13, "timestamp": "03:30:44", "type": "driver_change","carNum": 2,  "carClass": "HYPERCAR", "text": "#2 Cadillac Racing driver change: Lynn OUT → Bamber IN" },
+        { "id": 12, "timestamp": "03:10:15", "type": "pit",          "carNum": 22, "carClass": "LMP2",     "text": "#22 United Autosports takes class lead after #10 penalty" },
+        { "id": 11, "timestamp": "02:58:20", "type": "pit",          "carNum": 6,  "carClass": "HYPERCAR", "text": "#6 Porsche Penske OUT LAP — Lap 91" },
+        { "id": 10, "timestamp": "00:02:10", "type": "general",                                             "text": "GREEN FLAG — Race started at Spa-Francorchamps" }
+      ]
+    },
+    {
+      "idx": 3,
+      "ts": 1746889200000,
+      "raceInfo": {
+        "name": "2025 6 Hours of Spa-Francorchamps",
+        "round": 3,
+        "elapsed": "06:00:00",
+        "total": "06:00:00",
+        "remaining": "00:00:00",
+        "flag": "GREEN",
+        "weather": { "air": 16, "track": 22, "humidity": 75, "condition": "cloudy" }
+      },
+      "stats": {
+        "leaderLap": 182,
+        "totalPitstops": 48,
+        "fastestLap": { "time": "1:57.843", "carNum": 2, "team": "Cadillac Racing" },
+        "safetyCars": 2,
+        "safetyCarlap": 122
+      },
+      "cars": [
+        { "pos": 1,  "clsPos": 1, "carClass": "HYPERCAR", "carNum": 7,  "team": "Toyota Gazoo Racing", "drivers": "Conway / Kobayashi",     "tire": "H", "laps": 182, "lastLap": "1:58.001", "bestLap": "1:57.991", "gap": "LEAD",     "interval": "—",      "pitstops": 6, "status": "RUN", "isFastestLap": false },
+        { "pos": 2,  "clsPos": 2, "carClass": "HYPERCAR", "carNum": 2,  "team": "Cadillac Racing",     "drivers": "Bamber / Lynn",          "tire": "S", "laps": 182, "lastLap": "1:57.990", "bestLap": "1:57.843", "gap": "+00:22.1", "interval": "+22.1",  "pitstops": 6, "status": "RUN", "isFastestLap": true  },
+        { "pos": 3,  "clsPos": 3, "carClass": "HYPERCAR", "carNum": 6,  "team": "Porsche Penske",      "drivers": "Estre / Lotterer",       "tire": "M", "laps": 181, "lastLap": "1:58.880", "bestLap": "1:58.502", "gap": "+01:05.3", "interval": "+43.2",  "pitstops": 7, "status": "RUN", "isFastestLap": false },
+        { "pos": 4,  "clsPos": 4, "carClass": "HYPERCAR", "carNum": 8,  "team": "Toyota Gazoo Racing", "drivers": "Buemi / Hartley",        "tire": "S", "laps": 180, "lastLap": "1:59.100", "bestLap": "1:58.210", "gap": "+02:48.7", "interval": "+1:43.4","pitstops": 6, "status": "RUN", "isFastestLap": false },
+        { "pos": 5,  "clsPos": 1, "carClass": "LMP2",     "carNum": 22, "team": "United Autosports",   "drivers": "Albuquerque / Filipe",   "tire": "S", "laps": 175, "lastLap": "2:01.100", "bestLap": "2:01.100", "gap": "LEAD",     "interval": "—",      "pitstops": 5, "status": "RUN", "isFastestLap": false },
+        { "pos": 6,  "clsPos": 2, "carClass": "LMP2",     "carNum": 10, "team": "United Autosports",   "drivers": "Owen / Hanson",          "tire": "H", "laps": 174, "lastLap": "2:01.660", "bestLap": "2:01.330", "gap": "+00:52.4", "interval": "+52.4",  "pitstops": 6, "status": "RUN", "isFastestLap": false },
+        { "pos": 7,  "clsPos": 3, "carClass": "LMP2",     "carNum": 37, "team": "Cool Racing",         "drivers": "Doquin / Laurent",       "tire": "S", "laps": 172, "lastLap": "2:02.330", "bestLap": "2:02.100", "gap": "+2 Laps",  "interval": "+2 Laps","pitstops": 6, "status": "RUN", "isFastestLap": false },
+        { "pos": 8,  "clsPos": 1, "carClass": "LMGT3",    "carNum": 91, "team": "Porsche GT Team",     "drivers": "Pilet / Christensen",    "tire": "S", "laps": 166, "lastLap": "2:07.880", "bestLap": "2:07.880", "gap": "LEAD",     "interval": "—",      "pitstops": 5, "status": "RUN", "isFastestLap": false },
+        { "pos": 9,  "clsPos": 2, "carClass": "LMGT3",    "carNum": 77, "team": "Proton Competition",  "drivers": "Cairoli / Lietz",        "tire": "M", "laps": 165, "lastLap": "2:08.220", "bestLap": "2:07.889", "gap": "+00:44.8", "interval": "+44.8",  "pitstops": 6, "status": "RUN", "isFastestLap": false },
+        { "pos": 10, "clsPos": 3, "carClass": "LMGT3",    "carNum": 55, "team": "AF Corse",            "drivers": "Fuoco / Molina",         "tire": "H", "laps": 164, "lastLap": "2:08.990", "bestLap": "2:08.770", "gap": "+1 Lap",   "interval": "+1 Lap", "pitstops": 6, "status": "RUN", "isFastestLap": false }
+      ],
+      "messages": [
+        { "id": 25, "timestamp": "05:59:55", "type": "general",                                             "text": "CHEQUERED FLAG — 2025 6 Hours of Spa-Francorchamps" },
+        { "id": 24, "timestamp": "05:45:10", "type": "fastest",      "carNum": 2,  "carClass": "HYPERCAR", "text": "#2 Cadillac Racing FASTEST LAP overall — 1:57.843" },
+        { "id": 23, "timestamp": "05:30:22", "type": "driver_change","carNum": 7,  "carClass": "HYPERCAR", "text": "#7 Toyota Gazoo Racing driver change: Conway OUT → Kobayashi IN" },
+        { "id": 22, "timestamp": "05:10:15", "type": "pit",          "carNum": 6,  "carClass": "HYPERCAR", "text": "#6 Porsche Penske final pit — Lap 178 (22.4s)" },
+        { "id": 21, "timestamp": "04:55:30", "type": "pit",          "carNum": 91, "carClass": "LMGT3",    "text": "#91 Porsche GT Team OUT — final stint" },
+        { "id": 20, "timestamp": "04:44:05", "type": "pit",          "carNum": 8,  "carClass": "HYPERCAR", "text": "#8 Toyota Gazoo Racing PIT IN — Lap 142" },
+        { "id": 19, "timestamp": "04:02:10", "type": "safety_car",                                          "text": "SAFETY CAR deployed — contact at Eau Rouge (Lap 122)" },
+        { "id": 18, "timestamp": "01:52:30", "type": "safety_car",                                          "text": "SAFETY CAR deployed — debris on track (Lap 55)" },
+        { "id": 17, "timestamp": "00:02:10", "type": "general",                                             "text": "GREEN FLAG — Race started at Spa-Francorchamps" }
+      ]
+    }
+  ]
+}

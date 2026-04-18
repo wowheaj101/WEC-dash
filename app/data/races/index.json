@@ -1,0 +1,28 @@
+{
+  "races": [
+    {
+      "id": "2025-r3",
+      "year": 2025,
+      "round": 3,
+      "name": "6 Hours of Spa-Francorchamps",
+      "circuit": "Circuit de Spa-Francorchamps",
+      "countryFlag": "🇧🇪",
+      "duration": "6h",
+      "date": "2025-05-10",
+      "snapshots": 4,
+      "updatedAt": 1746889200000
+    },
+    {
+      "id": "2025-r1",
+      "year": 2025,
+      "round": 1,
+      "name": "1000 Miles of Sebring",
+      "circuit": "Sebring International Raceway",
+      "countryFlag": "🇺🇸",
+      "duration": "~12h",
+      "date": "2025-03-22",
+      "snapshots": 3,
+      "updatedAt": 1742601600000
+    }
+  ]
+}

@@ -1,0 +1,141 @@
+{
+  "meta": {
+    "id": "2025-r1",
+    "year": 2025,
+    "round": 1,
+    "name": "1000 Miles of Sebring",
+    "circuit": "Sebring International Raceway",
+    "countryFlag": "🇺🇸",
+    "duration": "~12h",
+    "date": "2025-03-22",
+    "snapshots": 3,
+    "updatedAt": 1742601600000
+  },
+  "snapshots": [
+    {
+      "idx": 0,
+      "ts": 1742558400000,
+      "raceInfo": {
+        "name": "2025 1000 Miles of Sebring",
+        "round": 1,
+        "elapsed": "03:00:00",
+        "total": "~12:00:00",
+        "remaining": "~09:00:00",
+        "flag": "GREEN",
+        "weather": { "air": 28, "track": 44, "humidity": 55, "condition": "sunny" }
+      },
+      "stats": {
+        "leaderLap": 88,
+        "totalPitstops": 18,
+        "fastestLap": { "time": "1:51.220", "carNum": 8, "team": "Toyota Gazoo Racing" },
+        "safetyCars": 0,
+        "safetyCarlap": 0
+      },
+      "cars": [
+        { "pos": 1,  "clsPos": 1, "carClass": "HYPERCAR", "carNum": 8,  "team": "Toyota Gazoo Racing", "drivers": "Buemi / Hartley",        "tire": "S", "laps": 88, "lastLap": "1:51.220", "bestLap": "1:51.220", "gap": "LEAD",     "interval": "—",     "pitstops": 2, "status": "RUN", "isFastestLap": true  },
+        { "pos": 2,  "clsPos": 2, "carClass": "HYPERCAR", "carNum": 7,  "team": "Toyota Gazoo Racing", "drivers": "Conway / Kobayashi",     "tire": "M", "laps": 88, "lastLap": "1:51.560", "bestLap": "1:51.440", "gap": "+00:15.3", "interval": "+15.3", "pitstops": 2, "status": "RUN", "isFastestLap": false },
+        { "pos": 3,  "clsPos": 3, "carClass": "HYPERCAR", "carNum": 2,  "team": "Cadillac Racing",     "drivers": "Bamber / Lynn",          "tire": "H", "laps": 87, "lastLap": "1:52.100", "bestLap": "1:51.880", "gap": "+01:02.8", "interval": "+47.5", "pitstops": 3, "status": "RUN", "isFastestLap": false },
+        { "pos": 4,  "clsPos": 4, "carClass": "HYPERCAR", "carNum": 6,  "team": "Porsche Penske",      "drivers": "Estre / Lotterer",       "tire": "S", "laps": 87, "lastLap": "1:52.340", "bestLap": "1:52.100", "gap": "+01:28.4", "interval": "+25.6", "pitstops": 2, "status": "RUN", "isFastestLap": false },
+        { "pos": 5,  "clsPos": 1, "carClass": "LMP2",     "carNum": 10, "team": "United Autosports",   "drivers": "Owen / Hanson",          "tire": "S", "laps": 84, "lastLap": "1:55.880", "bestLap": "1:55.560", "gap": "LEAD",     "interval": "—",     "pitstops": 2, "status": "RUN", "isFastestLap": false },
+        { "pos": 6,  "clsPos": 2, "carClass": "LMP2",     "carNum": 37, "team": "Cool Racing",         "drivers": "Doquin / Laurent",       "tire": "M", "laps": 83, "lastLap": "1:56.440", "bestLap": "1:56.100", "gap": "+00:55.2", "interval": "+55.2", "pitstops": 3, "status": "RUN", "isFastestLap": false },
+        { "pos": 7,  "clsPos": 3, "carClass": "LMP2",     "carNum": 22, "team": "United Autosports",   "drivers": "Albuquerque / Filipe",   "tire": "S", "laps": 82, "lastLap": "1:56.990", "bestLap": "1:56.550", "gap": "+1 Lap",   "interval": "+1 Lap","pitstops": 3, "status": "RUN", "isFastestLap": false },
+        { "pos": 8,  "clsPos": 1, "carClass": "LMGT3",    "carNum": 55, "team": "AF Corse",            "drivers": "Fuoco / Molina",         "tire": "S", "laps": 79, "lastLap": "2:02.110", "bestLap": "2:01.880", "gap": "LEAD",     "interval": "—",     "pitstops": 2, "status": "RUN", "isFastestLap": false },
+        { "pos": 9,  "clsPos": 2, "carClass": "LMGT3",    "carNum": 91, "team": "Porsche GT Team",     "drivers": "Pilet / Christensen",    "tire": "M", "laps": 79, "lastLap": "2:02.550", "bestLap": "2:02.100", "gap": "+00:28.8", "interval": "+28.8", "pitstops": 2, "status": "RUN", "isFastestLap": false },
+        { "pos": 10, "clsPos": 3, "carClass": "LMGT3",    "carNum": 77, "team": "Proton Competition",  "drivers": "Cairoli / Lietz",        "tire": "S", "laps": 78, "lastLap": "2:03.220", "bestLap": "2:02.880", "gap": "+1 Lap",   "interval": "+1 Lap","pitstops": 3, "status": "RUN", "isFastestLap": false }
+      ],
+      "messages": [
+        { "id": 5, "timestamp": "02:58:11", "type": "incident",     "carNum": 2,  "carClass": "HYPERCAR", "text": "#2 Cadillac Racing off-track at Turn 17 — drive-through penalty" },
+        { "id": 4, "timestamp": "02:30:44", "type": "fastest",      "carNum": 8,  "carClass": "HYPERCAR", "text": "#8 Toyota Gazoo Racing sets FASTEST LAP — 1:51.220" },
+        { "id": 3, "timestamp": "01:48:00", "type": "pit",          "carNum": 6,  "carClass": "HYPERCAR", "text": "#6 Porsche Penske OUT — Lap 44 (28.1s)" },
+        { "id": 2, "timestamp": "01:15:22", "type": "driver_change","carNum": 10, "carClass": "LMP2",     "text": "#10 United Autosports driver change: Hanson OUT → Owen IN" },
+        { "id": 1, "timestamp": "00:02:05", "type": "general",                                             "text": "GREEN FLAG — 1000 Miles of Sebring underway" }
+      ]
+    },
+    {
+      "idx": 1,
+      "ts": 1742572800000,
+      "raceInfo": {
+        "name": "2025 1000 Miles of Sebring",
+        "round": 1,
+        "elapsed": "07:00:00",
+        "total": "~12:00:00",
+        "remaining": "~05:00:00",
+        "flag": "SC",
+        "weather": { "air": 25, "track": 36, "humidity": 62, "condition": "cloudy" }
+      },
+      "stats": {
+        "leaderLap": 204,
+        "totalPitstops": 42,
+        "fastestLap": { "time": "1:51.220", "carNum": 8, "team": "Toyota Gazoo Racing" },
+        "safetyCars": 2,
+        "safetyCarlap": 198
+      },
+      "cars": [
+        { "pos": 1,  "clsPos": 1, "carClass": "HYPERCAR", "carNum": 8,  "team": "Toyota Gazoo Racing", "drivers": "Buemi / Hartley",        "tire": "M", "laps": 204, "lastLap": "1:52.440", "bestLap": "1:51.220", "gap": "LEAD",     "interval": "—",     "pitstops": 5, "status": "RUN", "isFastestLap": false },
+        { "pos": 2,  "clsPos": 2, "carClass": "HYPERCAR", "carNum": 2,  "team": "Cadillac Racing",     "drivers": "Bamber / Lynn",          "tire": "S", "laps": 204, "lastLap": "1:52.210", "bestLap": "1:51.880", "gap": "+00:02.1", "interval": "+2.1",  "pitstops": 5, "status": "RUN", "isFastestLap": true  },
+        { "pos": 3,  "clsPos": 3, "carClass": "HYPERCAR", "carNum": 7,  "team": "Toyota Gazoo Racing", "drivers": "Conway / Kobayashi",     "tire": "H", "laps": 203, "lastLap": "1:52.880", "bestLap": "1:51.440", "gap": "+01:44.8", "interval": "+1:42.7","pitstops": 5, "status": "RUN", "isFastestLap": false },
+        { "pos": 4,  "clsPos": 4, "carClass": "HYPERCAR", "carNum": 6,  "team": "Porsche Penske",      "drivers": "Estre / Lotterer",       "tire": "S", "laps": 202, "lastLap": "1:53.100", "bestLap": "1:52.100", "gap": "+3:02.2",  "interval": "+1:17.4","pitstops": 5, "status": "RUN", "isFastestLap": false },
+        { "pos": 5,  "clsPos": 1, "carClass": "LMP2",     "carNum": 37, "team": "Cool Racing",         "drivers": "Doquin / Laurent",       "tire": "S", "laps": 194, "lastLap": "1:56.110", "bestLap": "1:55.880", "gap": "LEAD",     "interval": "—",     "pitstops": 5, "status": "RUN", "isFastestLap": false },
+        { "pos": 6,  "clsPos": 2, "carClass": "LMP2",     "carNum": 10, "team": "United Autosports",   "drivers": "Owen / Hanson",          "tire": "M", "laps": 193, "lastLap": "1:56.780", "bestLap": "1:55.560", "gap": "+00:44.1", "interval": "+44.1", "pitstops": 5, "status": "RUN", "isFastestLap": false },
+        { "pos": 7,  "clsPos": 3, "carClass": "LMP2",     "carNum": 22, "team": "United Autosports",   "drivers": "Albuquerque / Filipe",   "tire": "S", "laps": 191, "lastLap": "1:57.220", "bestLap": "1:56.550", "gap": "+2 Laps",  "interval": "+2 Laps","pitstops": 6, "status": "RUN", "isFastestLap": false },
+        { "pos": 8,  "clsPos": 1, "carClass": "LMGT3",    "carNum": 91, "team": "Porsche GT Team",     "drivers": "Pilet / Christensen",    "tire": "S", "laps": 184, "lastLap": "2:02.220", "bestLap": "2:01.990", "gap": "LEAD",     "interval": "—",     "pitstops": 4, "status": "RUN", "isFastestLap": false },
+        { "pos": 9,  "clsPos": 2, "carClass": "LMGT3",    "carNum": 55, "team": "AF Corse",            "drivers": "Fuoco / Molina",         "tire": "H", "laps": 183, "lastLap": "2:02.780", "bestLap": "2:01.880", "gap": "+00:35.4", "interval": "+35.4", "pitstops": 5, "status": "RUN", "isFastestLap": false },
+        { "pos": 10, "clsPos": 3, "carClass": "LMGT3",    "carNum": 77, "team": "Proton Competition",  "drivers": "Cairoli / Lietz",        "tire": "S", "laps": 181, "lastLap": "2:03.440", "bestLap": "2:02.880", "gap": "+2 Laps",  "interval": "+2 Laps","pitstops": 5, "status": "RUN", "isFastestLap": false }
+      ],
+      "messages": [
+        { "id": 12, "timestamp": "06:58:00", "type": "safety_car",                                          "text": "SAFETY CAR — multi-car incident at Turn 1 (Lap 198)" },
+        { "id": 11, "timestamp": "06:30:22", "type": "driver_change","carNum": 8,  "carClass": "HYPERCAR", "text": "#8 Toyota Gazoo Racing driver change: Hartley OUT → Buemi IN" },
+        { "id": 10, "timestamp": "06:10:55", "type": "pit",          "carNum": 7,  "carClass": "HYPERCAR", "text": "#7 Toyota Gazoo Racing drops lap after pit penalty" },
+        { "id": 9,  "timestamp": "05:44:10", "type": "incident",     "carNum": 37, "carClass": "LMP2",     "text": "#37 Cool Racing contact with #22 — race direction investigating" },
+        { "id": 8,  "timestamp": "05:20:00", "type": "general",                                             "text": "GREEN FLAG — Safety Car period ends (Lap 162)" },
+        { "id": 7,  "timestamp": "04:55:30", "type": "safety_car",                                          "text": "SAFETY CAR deployed — #55 spun at Turn 7 (Lap 158)" },
+        { "id": 6,  "timestamp": "04:15:00", "type": "fastest",      "carNum": 2,  "carClass": "HYPERCAR", "text": "#2 Cadillac Racing sets fastest lap of race — 1:51.660" },
+        { "id": 5,  "timestamp": "02:58:11", "type": "incident",     "carNum": 2,  "carClass": "HYPERCAR", "text": "#2 Cadillac Racing drive-through penalty — regains 2nd overall" },
+        { "id": 4,  "timestamp": "00:02:05", "type": "general",                                             "text": "GREEN FLAG — 1000 Miles of Sebring underway" }
+      ]
+    },
+    {
+      "idx": 2,
+      "ts": 1742601600000,
+      "raceInfo": {
+        "name": "2025 1000 Miles of Sebring",
+        "round": 1,
+        "elapsed": "11:48:00",
+        "total": "~12:00:00",
+        "remaining": "00:00:00",
+        "flag": "GREEN",
+        "weather": { "air": 22, "track": 28, "humidity": 72, "condition": "cloudy" }
+      },
+      "stats": {
+        "leaderLap": 346,
+        "totalPitstops": 72,
+        "fastestLap": { "time": "1:51.220", "carNum": 8, "team": "Toyota Gazoo Racing" },
+        "safetyCars": 4,
+        "safetyCarlap": 198
+      },
+      "cars": [
+        { "pos": 1,  "clsPos": 1, "carClass": "HYPERCAR", "carNum": 2,  "team": "Cadillac Racing",     "drivers": "Bamber / Lynn",          "tire": "S", "laps": 346, "lastLap": "1:51.990", "bestLap": "1:51.880", "gap": "LEAD",     "interval": "—",     "pitstops": 9, "status": "RUN", "isFastestLap": false },
+        { "pos": 2,  "clsPos": 2, "carClass": "HYPERCAR", "carNum": 8,  "team": "Toyota Gazoo Racing", "drivers": "Buemi / Hartley",        "tire": "H", "laps": 346, "lastLap": "1:52.100", "bestLap": "1:51.220", "gap": "+00:08.4", "interval": "+8.4",  "pitstops": 9, "status": "RUN", "isFastestLap": true  },
+        { "pos": 3,  "clsPos": 3, "carClass": "HYPERCAR", "carNum": 6,  "team": "Porsche Penske",      "drivers": "Estre / Lotterer",       "tire": "S", "laps": 344, "lastLap": "1:52.880", "bestLap": "1:52.100", "gap": "+03:44.2", "interval": "+3:35.8","pitstops": 9, "status": "RUN", "isFastestLap": false },
+        { "pos": 4,  "clsPos": 4, "carClass": "HYPERCAR", "carNum": 7,  "team": "Toyota Gazoo Racing", "drivers": "Conway / Kobayashi",     "tire": "M", "laps": 343, "lastLap": "1:53.220", "bestLap": "1:51.440", "gap": "+05:12.1", "interval": "+1:27.9","pitstops": 9, "status": "RUN", "isFastestLap": false },
+        { "pos": 5,  "clsPos": 1, "carClass": "LMP2",     "carNum": 10, "team": "United Autosports",   "drivers": "Owen / Hanson",          "tire": "S", "laps": 331, "lastLap": "1:55.440", "bestLap": "1:55.560", "gap": "LEAD",     "interval": "—",     "pitstops": 8, "status": "RUN", "isFastestLap": false },
+        { "pos": 6,  "clsPos": 2, "carClass": "LMP2",     "carNum": 37, "team": "Cool Racing",         "drivers": "Doquin / Laurent",       "tire": "H", "laps": 329, "lastLap": "1:56.220", "bestLap": "1:55.880", "gap": "+02:18.8", "interval": "+2:18.8","pitstops": 9, "status": "RUN", "isFastestLap": false },
+        { "pos": 7,  "clsPos": 3, "carClass": "LMP2",     "carNum": 22, "team": "United Autosports",   "drivers": "Albuquerque / Filipe",   "tire": "S", "laps": 326, "lastLap": "1:57.100", "bestLap": "1:56.550", "gap": "+3 Laps",  "interval": "+3 Laps","pitstops": 9, "status": "RUN", "isFastestLap": false },
+        { "pos": 8,  "clsPos": 1, "carClass": "LMGT3",    "carNum": 91, "team": "Porsche GT Team",     "drivers": "Pilet / Christensen",    "tire": "S", "laps": 313, "lastLap": "2:01.880", "bestLap": "2:01.990", "gap": "LEAD",     "interval": "—",     "pitstops": 8, "status": "RUN", "isFastestLap": false },
+        { "pos": 9,  "clsPos": 2, "carClass": "LMGT3",    "carNum": 55, "team": "AF Corse",            "drivers": "Fuoco / Molina",         "tire": "M", "laps": 311, "lastLap": "2:02.550", "bestLap": "2:01.880", "gap": "+03:28.1", "interval": "+3:28.1","pitstops": 8, "status": "RUN", "isFastestLap": false },
+        { "pos": 10, "clsPos": 3, "carClass": "LMGT3",    "carNum": 77, "team": "Proton Competition",  "drivers": "Cairoli / Lietz",        "tire": "H", "laps": 308, "lastLap": "2:03.110", "bestLap": "2:02.880", "gap": "+3 Laps",  "interval": "+3 Laps","pitstops": 9, "status": "RUN", "isFastestLap": false }
+      ],
+      "messages": [
+        { "id": 20, "timestamp": "11:47:50", "type": "general",                                             "text": "CHEQUERED FLAG — 2025 1000 Miles of Sebring" },
+        { "id": 19, "timestamp": "11:30:00", "type": "fastest",      "carNum": 8,  "carClass": "HYPERCAR", "text": "#8 Toyota Gazoo Racing sets fastest lap — 1:51.220" },
+        { "id": 18, "timestamp": "11:10:22", "type": "driver_change","carNum": 2,  "carClass": "HYPERCAR", "text": "#2 Cadillac Racing final driver change: Lynn OUT → Bamber IN" },
+        { "id": 17, "timestamp": "10:44:55", "type": "safety_car",                                          "text": "SAFETY CAR deployed — major incident at Turn 3 (Lap 320)" },
+        { "id": 16, "timestamp": "10:20:00", "type": "general",                                             "text": "GREEN FLAG — Safety Car period ends (Lap 315)" },
+        { "id": 15, "timestamp": "09:58:30", "type": "safety_car",                                          "text": "SAFETY CAR deployed — oil on track (Lap 308)" },
+        { "id": 14, "timestamp": "09:00:00", "type": "pit",          "carNum": 2,  "carClass": "HYPERCAR", "text": "#2 Cadillac Racing takes overall lead after #8 pit" },
+        { "id": 13, "timestamp": "06:58:00", "type": "safety_car",                                          "text": "SAFETY CAR — multi-car incident at Turn 1 (Lap 198)" },
+        { "id": 12, "timestamp": "00:02:05", "type": "general",                                             "text": "GREEN FLAG — 1000 Miles of Sebring underway" }
+      ]
+    }
+  ]
+}

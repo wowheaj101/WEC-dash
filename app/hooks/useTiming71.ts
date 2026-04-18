@@ -12,6 +12,9 @@ import {
   mergeState,
 } from '@/app/lib/normalizeState'
 import { Timing71Client }    from '@/app/lib/timing71'
+import { CURRENT_SEASON }    from '@/app/data/calendar'
+import { getRoundStatus }    from '@/app/lib/getRoundStatus'
+import type { SnapshotPayload } from '@/app/api/races/snapshot/route'
 
 // 더미 데이터 — 연결 전 또는 WEC 서비스 없을 때 폴백
 import {
@@ -24,13 +27,13 @@ import {
 // ── 상태 타입 ──────────────────────────────────────────────────────
 
 export type ConnStatus =
-  | 'idle'          // 초기값
-  | 'connecting'    // 릴레이 연결 중
-  | 'connected'     // WAMP 세션 열림
-  | 'discovering'   // WEC 서비스 탐색 중
-  | 'live'          // 데이터 수신 중
-  | 'no_service'    // WEC 오프시즌 등 서비스 없음
-  | 'disconnected'  // 연결 끊김 (재연결 대기)
+  | 'idle'
+  | 'connecting'
+  | 'connected'
+  | 'discovering'
+  | 'live'
+  | 'no_service'
+  | 'disconnected'
   | 'error'
 
 export interface UseTiming71Result {
@@ -43,6 +46,8 @@ export interface UseTiming71Result {
   isLive:      boolean
   reconnect:   () => void
 }
+
+const SNAPSHOT_INTERVAL_MS = 120_000  // 2분마다 스냅샷 저장
 
 // ── Hook ──────────────────────────────────────────────────────────
 
@@ -58,12 +63,71 @@ export function useTiming71(): UseTiming71Result {
   const manifestRef = useRef<T71Manifest | null>(null)
   const rawStateRef = useRef<T71RawState | null>(null)
 
+  // 최신 상태를 interval 콜백에서 접근하기 위한 ref
+  const latestRef = useRef({ cars, raceInfo, stats, messages })
+  useEffect(() => {
+    latestRef.current = { cars, raceInfo, stats, messages }
+  }, [cars, raceInfo, stats, messages])
+
+  const snapshotIdxRef  = useRef(0)
+
   const isLive = status === 'live'
 
+  // ── 스냅샷 자동 저장 (라이브 중) ──────────────────────────────────
+
+  useEffect(() => {
+    if (status !== 'live') return
+
+    const roundStatus  = getRoundStatus(CURRENT_SEASON)
+    const activeRound  = roundStatus.current ?? roundStatus.next
+    if (!activeRound) return
+
+    const saveSnapshot = async () => {
+      const { cars: c, raceInfo: r, stats: s, messages: m } = latestRef.current
+      if (!c.length) return
+
+      const payload: SnapshotPayload = {
+        year:        activeRound.round === 1 ? new Date(activeRound.raceStart).getFullYear()
+                       : new Date(activeRound.raceStart).getFullYear(),
+        round:       activeRound.round,
+        name:        activeRound.name,
+        circuit:     activeRound.circuit,
+        countryFlag: activeRound.countryFlag,
+        duration:    activeRound.duration,
+        snapshot: {
+          idx:      snapshotIdxRef.current++,
+          ts:       Date.now(),
+          cars:     c,
+          raceInfo: r,
+          stats:    s,
+          messages: m.slice(-30),
+        },
+      }
+
+      try {
+        await fetch('/api/races/snapshot', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(payload),
+        })
+      } catch (err) {
+        console.warn('[snapshot] save failed:', err)
+      }
+    }
+
+    saveSnapshot()  // 라이브 전환 즉시 첫 스냅샷
+    const timer = setInterval(saveSnapshot, SNAPSHOT_INTERVAL_MS)
+    return () => {
+      clearInterval(timer)
+      snapshotIdxRef.current = 0
+    }
+  }, [status])
+
+  // ── Timing71 연결 ─────────────────────────────────────────────────
+
   const startConnection = useCallback(() => {
-    // 이전 클라이언트 정리
     clientRef.current?.disconnect()
-    clientRef.current = null
+    clientRef.current  = null
     manifestRef.current  = null
     rawStateRef.current  = null
 
@@ -71,36 +135,19 @@ export function useTiming71(): UseTiming71Result {
     setServiceName(null)
 
     const client = new Timing71Client({
-      onConnected: () => {
-        setStatus('discovering')
-      },
-
-      onDisconnected: (reason) => {
-        setStatus(reason === 'closed' ? 'idle' : 'disconnected')
-      },
-
-      onServiceFound: (uuid, name) => {
-        setServiceName(name)
-        setStatus('connected')
-      },
-
-      onNoService: () => {
-        setStatus('no_service')
-      },
-
-      onManifest: (manifest) => {
-        manifestRef.current = manifest
-      },
+      onConnected:    () => setStatus('discovering'),
+      onDisconnected: (reason) => setStatus(reason === 'closed' ? 'idle' : 'disconnected'),
+      onServiceFound: (_, name) => { setServiceName(name); setStatus('connected') },
+      onNoService:    () => setStatus('no_service'),
+      onManifest:     (manifest) => { manifestRef.current = manifest },
 
       onState: (update, isInitial) => {
         const manifest = manifestRef.current
         if (!manifest) return
 
         const colMap = buildColMap(manifest.colSpec)
-
-        // state 머지
-        const prev    = rawStateRef.current
-        const merged  = prev && !isInitial
+        const prev   = rawStateRef.current
+        const merged = prev && !isInitial
           ? mergeState(prev, update)
           : (update as T71RawState)
         rawStateRef.current = merged
@@ -117,7 +164,6 @@ export function useTiming71(): UseTiming71Result {
           setStats(computedStats)
           setStatus('live')
 
-          // 메시지 처리 (Timing71 raw messages → Message[])
           if (merged.messages?.length) {
             const normalized = merged.messages.slice(-50).map((raw, i) => ({
               id:        Date.now() + i,
@@ -137,30 +183,17 @@ export function useTiming71(): UseTiming71Result {
     client.connect().catch(() => setStatus('error'))
   }, [])
 
-  // 마운트 시 자동 연결
   useEffect(() => {
     startConnection()
-    return () => {
-      clientRef.current?.disconnect()
-    }
+    return () => { clientRef.current?.disconnect() }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 연결 끊김 시 30초 후 자동 재연결
   useEffect(() => {
     if (status !== 'disconnected') return
     const t = setTimeout(() => startConnection(), 30_000)
     return () => clearTimeout(t)
   }, [status, startConnection])
 
-  return {
-    status,
-    serviceName,
-    cars,
-    raceInfo,
-    stats,
-    messages,
-    isLive,
-    reconnect: startConnection,
-  }
+  return { status, serviceName, cars, raceInfo, stats, messages, isLive, reconnect: startConnection }
 }
