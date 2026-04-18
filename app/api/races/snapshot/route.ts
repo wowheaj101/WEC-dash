@@ -55,7 +55,7 @@ export async function POST(req: Request) {
     data.meta = meta
 
     await put(path, JSON.stringify(data), {
-      access:          'public',
+      access:          'private',
       contentType:     'application/json',
       addRandomSuffix: false,
     })

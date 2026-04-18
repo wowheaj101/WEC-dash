@@ -9,6 +9,26 @@ function useBlob() {
   return !!process.env.BLOB_READ_WRITE_TOKEN
 }
 
+async function blobReadJson<T>(pathname: string): Promise<T | null> {
+  try {
+    const { get } = await import('@vercel/blob')
+    const res = await get(pathname, { access: 'private', useCache: false })
+    if (!res || res.statusCode !== 200 || !res.stream) return null
+
+    const reader = res.stream.getReader()
+    const chunks: Uint8Array[] = []
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      if (value) chunks.push(value)
+    }
+    const text = Buffer.concat(chunks).toString('utf-8')
+    return JSON.parse(text) as T
+  } catch {
+    return null
+  }
+}
+
 // ── 로컬 파일 헬퍼 ────────────────────────────────────────────────
 
 async function localReadJson<T>(filePath: string): Promise<T | null> {
@@ -32,15 +52,7 @@ export async function getIndex(): Promise<RaceIndex> {
     return (await localReadJson<RaceIndex>(path.join(LOCAL_DIR, 'index.json'))) ?? { races: [] }
   }
 
-  try {
-    const { head } = await import('@vercel/blob')
-    const blob = await head(INDEX_PATH).catch(() => null)
-    if (!blob) return { races: [] }
-    const res = await fetch(blob.url, { cache: 'no-store' })
-    return (await res.json()) as RaceIndex
-  } catch {
-    return { races: [] }
-  }
+  return (await blobReadJson<RaceIndex>(INDEX_PATH)) ?? { races: [] }
 }
 
 export async function getRace(year: number, round: number): Promise<RaceData | null> {
@@ -48,16 +60,7 @@ export async function getRace(year: number, round: number): Promise<RaceData | n
     return localReadJson<RaceData>(path.join(LOCAL_DIR, String(year), `r${round}.json`))
   }
 
-  try {
-    const { head } = await import('@vercel/blob')
-    const blobPath = `wec-dashboard/races/${year}/r${round}.json`
-    const blob = await head(blobPath).catch(() => null)
-    if (!blob) return null
-    const res = await fetch(blob.url, { cache: 'no-store' })
-    return (await res.json()) as RaceData
-  } catch {
-    return null
-  }
+  return blobReadJson<RaceData>(`wec-dashboard/races/${year}/r${round}.json`)
 }
 
 export async function upsertIndex(meta: RaceMeta): Promise<void> {
@@ -77,7 +80,7 @@ export async function upsertIndex(meta: RaceMeta): Promise<void> {
   else index.races.unshift(meta)
 
   await put(INDEX_PATH, JSON.stringify(index), {
-    access:          'public',
+    access:          'private',
     contentType:     'application/json',
     addRandomSuffix: false,
   })
@@ -93,7 +96,7 @@ export async function upsertRace(data: RaceData): Promise<void> {
   const { put } = await import('@vercel/blob')
   const { year, round } = data.meta
   await put(`wec-dashboard/races/${year}/r${round}.json`, JSON.stringify(data), {
-    access:          'public',
+    access:          'private',
     contentType:     'application/json',
     addRandomSuffix: false,
   })
