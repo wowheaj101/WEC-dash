@@ -12,8 +12,24 @@ interface Props {
 export default function RoundBanner({ isLive }: Props) {
   const status = useMemo(() => getRoundStatus(CURRENT_SEASON), [])
 
-  // 라이브 중이거나 레이스 활성 상태면 Timing71 데이터가 우선
-  if (isLive || status.phase === 'active') return null
+  // 라이브 중이면 Timing71 데이터가 우선 — 숨김
+  if (isLive) return null
+
+  // 레이스 활성 중이지만 연결 안 됨 → 재연결 중 배너 표시
+  if (status.phase === 'active' && status.current) {
+    const r = status.current
+    return (
+      <Banner color="#1a0800" border="#663300">
+        <span className="dot-blink-slow" style={{ color: '#ff6600' }}>●</span>
+        <span style={{ color: '#ff9933', marginLeft: 6 }}>
+          Round {r.round} {r.countryFlag} {r.name} — LIVE 재연결 중…
+        </span>
+        <span style={{ color: '#555', marginLeft: 8, fontSize: 10 }}>
+          {r.circuit} · {r.duration}
+        </span>
+      </Banner>
+    )
+  }
 
   // 시즌 종료 후
   if (status.phase === 'post_season') {

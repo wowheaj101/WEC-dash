@@ -19,6 +19,8 @@ export interface Car {
   pitstops:      number
   status:        Status
   isFastestLap:  boolean
+  lastColor?:    'sb' | 'pb'
+  bestColor?:    'sb' | 'pb'
 }
 
 export interface RaceInfo {

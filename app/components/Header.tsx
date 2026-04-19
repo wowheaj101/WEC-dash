@@ -23,8 +23,8 @@ export default function Header({ info, isLive }: Props) {
     weatherRound?.lon ?? null,
   )
 
-  // Display name: live → from Timing71 raceInfo, otherwise from calendar
-  const displayRound = isLive
+  // Display name: live or active phase → current round, otherwise next
+  const displayRound = (isLive || roundStatus.phase === 'active')
     ? roundStatus.current ?? roundStatus.next
     : roundStatus.next ?? roundStatus.current
 
