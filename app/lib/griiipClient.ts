@@ -9,8 +9,8 @@
  *  5. Listen on "lv-${channel}" events
  */
 
-const API_ROOT = 'https://insights.griiip.com'
-const HUB_URL  = `${API_ROOT}/live-session-stream`
+const API_ROOT  = '/api/griiip'
+const HUB_URL   = 'https://insights.griiip.com/live-session-stream'
 const WEC_SERIES_ID = 10
 
 const CHANNELS = [
