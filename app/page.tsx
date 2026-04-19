@@ -14,7 +14,6 @@ import StintAnalysis   from '@/app/components/StintAnalysis'
 import RoundBanner     from '@/app/components/RoundBanner'
 import ReplayBrowser   from '@/app/components/ReplayBrowser'
 import ReplayControls  from '@/app/components/ReplayControls'
-import { driverStats, carStints } from '@/app/data/dummyData'
 import { useTiming71, type ConnStatus } from '@/app/hooks/useTiming71'
 import { useReplay }   from '@/app/hooks/useReplay'
 
@@ -25,7 +24,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'trackmap',  label: '트랙맵'       },
   { id: 'drivers',   label: '드라이버 분석' },
   { id: 'stints',    label: '스틴트 분석'   },
-  { id: 'messages',  label: '메시지'        },
+  { id: 'messages',  label: '레이스컨트롤'  },
   { id: 'replay',    label: '📼 다시보기'   },
 ]
 
@@ -105,7 +104,7 @@ export default function Page() {
   // Live 데이터
   const {
     status, serviceName, reconnect,
-    cars, raceInfo, stats, messages, isLive,
+    cars, raceInfo, stats, messages, carStints, driverStats, isLive,
   } = useTiming71()
 
   // Replay

@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import type { Car } from '@/app/types/race'
 import { CIRCUIT_SVG, SPA } from '@/app/data/trackPaths'
+import type { CircuitSVG } from '@/app/data/trackPaths'
 import { CURRENT_SEASON } from '@/app/data/calendar'
 import { getRoundStatus } from '@/app/lib/getRoundStatus'
 
@@ -12,46 +13,53 @@ const CLASS_COLOR: Record<string, string> = {
   LMGT3:    '#44cc55',
 }
 
-// Spa car positions (used only when Timing71 is live — circuit matched to active session)
-const SPA_CAR_POSITIONS: Record<number, [number, number]> = {
-  2:  [335, 215],
-  7:  [294, 270],
-  6:  [258, 346],
-  8:  [210, 185],
-  10: [268, 148],
-  22: [318, 268],
-  37: [152, 79],
-  77: [248, 242],
-  91: [357, 238],
-  55: [258, 356],
-}
-
 interface Props {
   cars:        Car[]
   compact?:    boolean
-  /** If provided, overrides the calendar-derived circuit */
   circuitKey?: string
   isLive?:     boolean
+}
+
+function carDotPosition(
+  car: Car,
+  circuit: CircuitSVG,
+  indexInSector: number,
+): [number, number] {
+  if (car.status === 'PIT') {
+    // Distribute pit cars along pit lane start point
+    const sfMidX = (circuit.sf[0] + circuit.sf[2]) / 2
+    const sfMidY = (circuit.sf[1] + circuit.sf[3]) / 2
+    return [sfMidX + (indexInSector % 4 - 1.5) * 9, sfMidY - 14]
+  }
+  const s = Math.min((car.sectorNum ?? 1) - 1, 2)
+  const [bx, by] = circuit.sectorPoints[s]
+  // Spread cars in a 3-wide grid so dots don't stack
+  const col = indexInSector % 3
+  const row = Math.floor(indexInSector / 3)
+  return [bx + (col - 1) * 11, by + (row - 1) * 11]
 }
 
 export default function TrackMap({ cars, compact, circuitKey, isLive }: Props) {
   const roundStatus = useMemo(() => getRoundStatus(CURRENT_SEASON), [])
 
-  // Pick which circuit to show:
-  // 1. Explicit override (e.g. from Timing71 service name matching)
-  // 2. When live → use active/current round's circuit
-  // 3. When not live → use next round's circuit
   const resolvedKey = circuitKey
     ?? (isLive ? roundStatus.current?.circuit : roundStatus.next?.circuit)
     ?? roundStatus.current?.circuit
 
-  const circuit: import('@/app/data/trackPaths').CircuitSVG =
+  const circuit: CircuitSVG =
     (resolvedKey ? CIRCUIT_SVG[resolvedKey] : undefined) ?? SPA
-  const label   = resolvedKey ?? 'Circuit de Spa-Francorchamps'
+  const label = resolvedKey ?? 'Circuit de Spa-Francorchamps'
 
-  // Only render car dots when we're live AND we're showing the Spa circuit
-  // (car positions are hardcoded for Spa; future: interpolate from sector data)
-  const showCars = isLive && (!resolvedKey || resolvedKey === 'Circuit de Spa-Francorchamps')
+  // Group cars by sector for index-within-sector calculation
+  const sectorGroups = useMemo(() => {
+    const groups: Map<string, Car[]> = new Map()
+    for (const car of cars) {
+      const key = car.status === 'PIT' ? 'pit' : String(car.sectorNum ?? 1)
+      if (!groups.has(key)) groups.set(key, [])
+      groups.get(key)!.push(car)
+    }
+    return groups
+  }, [cars])
 
   return (
     <div style={{
@@ -109,7 +117,7 @@ export default function TrackMap({ cars, compact, circuitKey, isLive }: Props) {
             stroke="#ffff55" strokeWidth="1.5" opacity="0.6" />
         ))}
 
-        {/* Circuit label (compact mode, top-left) */}
+        {/* Circuit label (compact mode) */}
         {compact && (
           <text x="12" y="18" fontSize="7" fill="#444"
             style={{ fontFamily: 'monospace' }}>
@@ -117,36 +125,40 @@ export default function TrackMap({ cars, compact, circuitKey, isLive }: Props) {
           </text>
         )}
 
-        {/* Car dots — only when live on the Spa circuit */}
-        {showCars && cars.map(car => {
-          const [x, y]  = SPA_CAR_POSITIONS[car.carNum] ?? [240, 190]
-          const color   = CLASS_COLOR[car.carClass]
-          const isPit   = car.status === 'PIT'
-          const isOut   = car.status === 'OUT'
-          const r       = compact ? 5 : 7
-          const dotColor = isPit ? '#ff9900' : isOut ? '#ffaa00' : color
+        {/* Car dots — sector-based positions when live */}
+        {isLive && cars
+          .filter(c => c.status !== 'OUT')
+          .map(car => {
+            const key = car.status === 'PIT' ? 'pit' : String(car.sectorNum ?? 1)
+            const group = sectorGroups.get(key) ?? []
+            const idx = group.findIndex(c => c.carNum === car.carNum)
+            const [x, y] = carDotPosition(car, circuit, Math.max(idx, 0))
+            const color    = CLASS_COLOR[car.carClass]
+            const isPit    = car.status === 'PIT'
+            const dotColor = isPit ? '#ff9900' : color
+            const r        = compact ? 4 : 6
 
-          return (
-            <g key={car.carNum}>
-              <circle cx={x} cy={y} r={r + 4} fill={dotColor} opacity="0.12" />
-              <circle cx={x} cy={y} r={r}
-                fill={dotColor} stroke="#000" strokeWidth="1"
-                opacity={isPit ? 0.65 : 1}
-              />
-              {!compact && (
-                <text x={x + r + 3} y={y + 1}
-                  fontSize="8" fill={color} dominantBaseline="middle"
-                  style={{ fontFamily: 'monospace' }}
-                >
-                  {car.carNum}
-                </text>
-              )}
-            </g>
-          )
-        })}
+            return (
+              <g key={car.carNum}>
+                <circle cx={x} cy={y} r={r + 3} fill={dotColor} opacity="0.15" />
+                <circle cx={x} cy={y} r={r}
+                  fill={dotColor} stroke="#000" strokeWidth="1"
+                  opacity={isPit ? 0.6 : 1}
+                />
+                {!compact && (
+                  <text x={x + r + 3} y={y + 1}
+                    fontSize="8" fill={color} dominantBaseline="middle"
+                    style={{ fontFamily: 'monospace' }}
+                  >
+                    {car.carNum}
+                  </text>
+                )}
+              </g>
+            )
+          })
+        }
 
-        {/* "No live data" overlay when not live */}
-        {!showCars && !compact && (
+        {!isLive && !compact && (
           <text x="240" y="340" textAnchor="middle"
             fontSize="9" fill="#333" style={{ fontFamily: 'monospace' }}>
             라이브 연결 시 차량 위치 표시
@@ -154,7 +166,6 @@ export default function TrackMap({ cars, compact, circuitKey, isLive }: Props) {
         )}
       </svg>
 
-      {/* Class legend */}
       {!compact && (
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 9, color: '#555' }}>
           {(['HYPERCAR', 'LMP2', 'LMGT3'] as const).map(cls => (

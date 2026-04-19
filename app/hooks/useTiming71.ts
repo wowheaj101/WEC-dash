@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import type { Car, RaceInfo, Stats, Message, FlagStatus, CarClass, Status } from '@/app/types/race'
+import type { Car, RaceInfo, Stats, Message, FlagStatus, CarClass, Status, CarStint, StintEntry, DriverStat } from '@/app/types/race'
 import { GriiipClient }      from '@/app/lib/griiipClient'
 import type {
   GriiipParticipant,
@@ -17,12 +17,15 @@ import type {
 import { CURRENT_SEASON }     from '@/app/data/calendar'
 import { getRoundStatus }     from '@/app/lib/getRoundStatus'
 import type { SnapshotPayload } from '@/app/api/races/snapshot/route'
+import type { RaceData }        from '@/app/types/replay'
 
 import {
-  raceInfo  as dummyRaceInfo,
-  stats     as dummyStats,
-  cars      as dummyCars,
-  messages  as dummyMessages,
+  raceInfo   as dummyRaceInfo,
+  stats      as dummyStats,
+  cars       as dummyCars,
+  messages   as dummyMessages,
+  carStints  as dummyCarStints,
+  driverStats as dummyDriverStats,
 } from '@/app/data/dummyData'
 
 // ── Connection status ─────────────────────────────────────────────
@@ -44,6 +47,8 @@ export interface UseTiming71Result {
   raceInfo:    RaceInfo
   stats:       Stats
   messages:    Message[]
+  carStints:   CarStint[]
+  driverStats: DriverStat[]
   isLive:      boolean
   reconnect:   () => void
 }
@@ -89,6 +94,13 @@ function mapClass(classId: string): CarClass {
   return 'LMP2'
 }
 
+function formatDuration(ms: number): string {
+  const h = Math.floor(ms / 3600000)
+  const m = Math.floor((ms % 3600000) / 60000)
+  const s = Math.floor((ms % 60000) / 1000)
+  return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
 // ── Internal state types ──────────────────────────────────────────
 
 interface LapState {
@@ -103,13 +115,27 @@ interface LapState {
 
 const SNAPSHOT_INTERVAL_MS = 120_000
 
+const EMPTY_RACE_INFO: RaceInfo = {
+  name: '', round: 0,
+  elapsed: '--:--', total: '--', remaining: '--',
+  flag: 'GREEN',
+  weather: { air: 0, track: 0, humidity: 0, condition: 'unknown' },
+}
+const EMPTY_STATS: Stats = {
+  leaderLap: 0, totalPitstops: 0,
+  fastestLap: { time: '--:--.---', carNum: 0, team: '' },
+  safetyCars: 0, safetyCarlap: 0,
+}
+
 export function useTiming71(): UseTiming71Result {
   const [status,      setStatus]      = useState<ConnStatus>('idle')
   const [serviceName, setServiceName] = useState<string | null>(null)
-  const [cars,        setCars]        = useState<Car[]>(dummyCars)
-  const [raceInfo,    setRaceInfo]    = useState<RaceInfo>(dummyRaceInfo)
-  const [stats,       setStats]       = useState<Stats>(dummyStats)
-  const [messages,    setMessages]    = useState<Message[]>(dummyMessages)
+  const [cars,        setCars]        = useState<Car[]>([])
+  const [raceInfo,    setRaceInfo]    = useState<RaceInfo>(EMPTY_RACE_INFO)
+  const [stats,       setStats]       = useState<Stats>(EMPTY_STATS)
+  const [messages,    setMessages]    = useState<Message[]>([])
+  const [carStints,   setCarStints]   = useState<CarStint[]>([])
+  const [driverStats, setDriverStats] = useState<DriverStat[]>([])
 
   // Internal live state (refs — no re-render on every tick)
   const participantsRef = useRef<Map<number, GriiipParticipant>>(new Map())
@@ -123,6 +149,8 @@ export function useTiming71(): UseTiming71Result {
   const sessionNameRef  = useRef<string>('')
   const scCountRef      = useRef(0)
   const scLapRef        = useRef(0)
+
+  const stintRef        = useRef<Map<number, StintEntry[]>>(new Map())
 
   const clientRef       = useRef<GriiipClient | null>(null)
   const latestRef       = useRef({ cars, raceInfo, stats, messages })
@@ -172,6 +200,7 @@ export function useTiming71(): UseTiming71Result {
           isFastestLap: !!(laps?.bestLapMs && laps.bestLapMs === overallBest),
           lastColor:    laps?.lastColor ?? undefined,
           bestColor:    laps?.bestColor ?? undefined,
+          sectorNum:    rank?.sectorNumber,
         } as Car
       })
       .filter(c => c.pos !== 999)
@@ -197,6 +226,56 @@ export function useTiming71(): UseTiming71Result {
       flag:      flagRef.current,
       weather:   dummyRaceInfo.weather,  // Griiip doesn't provide weather; useWeather hook handles it
     }
+  }, [])
+
+  // ── Build CarStints ───────────────────────────────────────────
+
+  const buildCarStints = useCallback((): CarStint[] => {
+    return Array.from(participantsRef.current.values())
+      .map((p): CarStint => ({
+        carNum:   parseInt(p.carNumber) || 0,
+        carClass: mapClass(p.classId),
+        team:     p.teamName,
+        stints:   stintRef.current.get(p.id) ?? [{ startLap: 1, endLap: null, tire: 'S' }],
+      }))
+      .filter(c => c.carNum > 0)
+      .sort((a, b) => a.carNum - b.carNum)
+  }, [])
+
+  // ── Build DriverStats ─────────────────────────────────────────
+
+  const buildDriverStats = useCallback((): DriverStat[] => {
+    const participants = Array.from(participantsRef.current.values())
+    if (participants.length === 0) return []
+
+    let globalBestMs = Infinity
+    Array.from(lapRef.current.values()).forEach(ls => {
+      if (ls.bestLapMs && ls.bestLapMs < globalBestMs) globalBestMs = ls.bestLapMs
+    })
+
+    return participants
+      .map((p): DriverStat => {
+        const lapState = lapRef.current.get(p.id)
+        const rankItem = rankRef.current.get(p.id)
+        const bestLap  = formatMs(lapState?.bestLapMs)
+        const isSessionBest = !!(lapState?.bestLapMs && lapState.bestLapMs === globalBestMs)
+        const totalMs  = rankItem?.elapsedTimeMillis ?? 0
+        const primaryDriver = p.drivers[0]
+        return {
+          carNum:        parseInt(p.carNumber) || 0,
+          carClass:      mapClass(p.classId),
+          team:          p.teamName,
+          driver:        primaryDriver?.displayName || primaryDriver?.threeLettersName || p.threeLettersName,
+          bestLap,
+          s1:            '--',
+          s2:            '--',
+          s3:            '--',
+          totalTime:     formatDuration(totalMs),
+          isSessionBest,
+        }
+      })
+      .filter(d => d.carNum > 0)
+      .sort((a, b) => a.carNum - b.carNum)
   }, [])
 
   // ── Build Stats ───────────────────────────────────────────────
@@ -237,14 +316,18 @@ export function useTiming71(): UseTiming71Result {
   // ── Flush all state to React ──────────────────────────────────
 
   const flush = useCallback(() => {
-    const newCars     = buildCars()
-    const newRaceInfo = buildRaceInfo()
-    const newStats    = buildStats()
+    const newCars        = buildCars()
+    const newRaceInfo    = buildRaceInfo()
+    const newStats       = buildStats()
+    const newCarStints   = buildCarStints()
+    const newDriverStats = buildDriverStats()
     if (newCars.length > 0) setCars(newCars)
     setRaceInfo(newRaceInfo)
     setStats(newStats)
+    if (newCarStints.length > 0)   setCarStints(newCarStints)
+    if (newDriverStats.length > 0) setDriverStats(newDriverStats)
     setStatus('live')
-  }, [buildCars, buildRaceInfo, buildStats])
+  }, [buildCars, buildRaceInfo, buildStats, buildCarStints, buildDriverStats])
 
   // ── Snapshot auto-save ────────────────────────────────────────
 
@@ -292,12 +375,13 @@ export function useTiming71(): UseTiming71Result {
     clientRef.current?.disconnect()
     clientRef.current = null
 
-    // Reset state
+    // Reset refs
     participantsRef.current = new Map()
     rankRef.current         = new Map()
     gapRef.current          = new Map()
     lapRef.current          = new Map()
     pitCountRef.current     = new Map()
+    stintRef.current        = new Map()
     clockRef.current        = null
     scheduleRef.current     = null
     flagRef.current         = 'GREEN'
@@ -306,6 +390,34 @@ export function useTiming71(): UseTiming71Result {
 
     setStatus('connecting')
     setServiceName(null)
+    setCars([])
+    setMessages([])
+    setCarStints([])
+    setDriverStats([])
+    setRaceInfo(EMPTY_RACE_INFO)
+    setStats(EMPTY_STATS)
+
+    // ── Restore last snapshot from Blob before connecting ────────
+    // Runs async but doesn't block SignalR connection below.
+    // Populates UI with last known state while waiting for live data,
+    // and ensures snapshotIdxRef continues from the correct index.
+    const roundStatus = getRoundStatus(CURRENT_SEASON)
+    const activeRound = roundStatus.current ?? roundStatus.next
+    if (activeRound) {
+      const year = new Date(activeRound.raceStart).getFullYear()
+      fetch(`/api/races/${year}/${activeRound.round}`)
+        .then(r => r.ok ? r.json() as Promise<RaceData> : null)
+        .then(data => {
+          if (!data || data.snapshots.length === 0) return
+          const latest = data.snapshots[data.snapshots.length - 1]
+          snapshotIdxRef.current = latest.idx + 1
+          setCars(latest.cars)
+          setRaceInfo(latest.raceInfo)
+          setStats(latest.stats)
+          setMessages(latest.messages)
+        })
+        .catch(() => { /* no saved data, start fresh */ })
+    }
 
     const client = new GriiipClient({
       onConnected:    () => setStatus(prev => prev === 'live' ? 'live' : 'discovering'),
@@ -317,7 +429,15 @@ export function useTiming71(): UseTiming71Result {
         setStatus('connected')
       },
 
-      onNoService: () => setStatus('no_service'),
+      onNoService: () => {
+        setStatus('no_service')
+        setCars(dummyCars)
+        setRaceInfo(dummyRaceInfo)
+        setStats(dummyStats)
+        setMessages(dummyMessages)
+        setCarStints(dummyCarStints)
+        setDriverStats(dummyDriverStats)
+      },
 
       onSchedule: (schedule) => {
         scheduleRef.current = schedule
@@ -326,6 +446,9 @@ export function useTiming71(): UseTiming71Result {
 
       onParticipants: (participants) => {
         participantsRef.current = new Map(participants.map(p => [p.id, p]))
+        for (const p of participants) {
+          stintRef.current.set(p.id, [{ startLap: 1, endLap: null, tire: 'S' }])
+        }
       },
 
       onRanks: (items) => {
@@ -404,6 +527,11 @@ export function useTiming71(): UseTiming71Result {
         const ls = lapRef.current.get(item.pid)
         if (ls) lapRef.current.set(item.pid, { ...ls, inPit: true })
         pitCountRef.current.set(item.pid, (pitCountRef.current.get(item.pid) ?? 0) + 1)
+        const stints = stintRef.current.get(item.pid) ?? []
+        if (stints.length > 0 && stints[stints.length - 1].endLap === null) {
+          stints[stints.length - 1].endLap = item.lapNumber
+        }
+        stintRef.current.set(item.pid, stints)
         flush()
 
         const participant = participantsRef.current.get(item.pid)
@@ -425,6 +553,9 @@ export function useTiming71(): UseTiming71Result {
       onPitOut: (item) => {
         const ls = lapRef.current.get(item.pid)
         if (ls) lapRef.current.set(item.pid, { ...ls, inPit: false })
+        const stints = stintRef.current.get(item.pid) ?? []
+        stints.push({ startLap: item.lapNumber + 1, endLap: null, tire: 'S' })
+        stintRef.current.set(item.pid, stints)
         flush()
 
         const participant = participantsRef.current.get(item.pid)
@@ -461,5 +592,5 @@ export function useTiming71(): UseTiming71Result {
     return () => clearTimeout(t)
   }, [status, startConnection])
 
-  return { status, serviceName, cars, raceInfo, stats, messages, isLive, reconnect: startConnection }
+  return { status, serviceName, cars, raceInfo, stats, messages, carStints, driverStats, isLive, reconnect: startConnection }
 }

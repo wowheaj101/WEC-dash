@@ -21,6 +21,7 @@ export interface Car {
   isFastestLap:  boolean
   lastColor?:    'sb' | 'pb'
   bestColor?:    'sb' | 'pb'
+  sectorNum?:    number
 }
 
 export interface RaceInfo {
