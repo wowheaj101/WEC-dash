@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { cn } from '@/app/lib/utils'
+import { Button } from '@/app/components/ui/button'
 import type { Message } from '@/app/types/race'
 import ClassBadge from './ClassBadge'
 
@@ -15,26 +17,16 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'fastest',       label: '패스티스트' },
 ]
 
-function msgBg(type: Message['type']): string {
-  switch (type) {
-    case 'pit':           return '#160e00'
-    case 'safety_car':    return '#1a0e00'
-    case 'fastest':       return '#110018'
-    case 'incident':      return '#1a0000'
-    case 'driver_change': return '#001020'
-    default:              return 'transparent'
-  }
+const MSG_STYLE: Record<string, { bg: string; text: string }> = {
+  pit:           { bg: 'bg-[hsl(var(--pit-bg))]',     text: 'text-[hsl(var(--pit))]' },
+  safety_car:    { bg: 'bg-[#1a0e00]',                text: 'text-[#ff7700]' },
+  fastest:       { bg: 'bg-[hsl(var(--purple-bg))]',  text: 'text-[hsl(var(--purple))]' },
+  incident:      { bg: 'bg-[hsl(var(--danger-bg))]',  text: 'text-[hsl(var(--danger))]' },
+  driver_change: { bg: 'bg-[hsl(var(--info-bg))]',    text: 'text-[hsl(var(--info))]' },
 }
 
-function msgColor(type: Message['type']): string {
-  switch (type) {
-    case 'pit':           return '#ff9900'
-    case 'safety_car':    return '#ff7700'
-    case 'fastest':       return '#cc44ff'
-    case 'incident':      return '#ff4444'
-    case 'driver_change': return '#4488ff'
-    default:              return '#aaa'
-  }
+function msgStyle(type: Message['type']) {
+  return MSG_STYLE[type] ?? { bg: 'bg-transparent', text: 'text-foreground' }
 }
 
 interface Props {
@@ -45,93 +37,56 @@ interface Props {
 export default function MessageFeed({ messages, compact }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
 
-  const filtered = filter === 'all'
-    ? messages
-    : messages.filter(m => m.type === filter)
-
+  const filtered  = filter === 'all' ? messages : messages.filter(m => m.type === filter)
   const displayed = compact ? filtered.slice(0, 7) : filtered
 
   return (
-    <div style={{
-      background:    '#0f0f0f',
-      border:        '0.5px solid #2a2a2a',
-      borderRadius:  8,
-      overflow:      'hidden',
-      display:       'flex',
-      flexDirection: 'column',
-    }}>
+    <div className="panel flex flex-col overflow-hidden">
       {/* Header */}
-      <div style={{
-        padding:        '6px 10px',
-        borderBottom:   '0.5px solid #1e1e1e',
-        display:        'flex',
-        alignItems:     'center',
-        justifyContent: 'space-between',
-        flexWrap:       'wrap',
-        gap:            6,
-      }}>
-        <span style={{ fontSize: 10, color: '#555', textTransform: 'uppercase', letterSpacing: 1 }}>
-          {compact ? '이벤트 로그' : '메시지 피드'}
-        </span>
+      <div className="flex items-center justify-between flex-wrap gap-2 px-3 py-2 border-b border-border">
+        <span className="section-label">{compact ? '이벤트 로그' : '메시지 피드'}</span>
         {!compact && (
-          <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+          <div className="flex gap-1 flex-wrap">
             {FILTERS.map(f => (
-              <button
+              <Button
                 key={f.id}
+                size="sm"
+                variant={filter === f.id ? 'active' : 'ghost'}
                 onClick={() => setFilter(f.id)}
-                style={{
-                  padding:     '2px 7px',
-                  background:  filter === f.id ? '#222' : 'transparent',
-                  color:       filter === f.id ? '#fff' : '#555',
-                  border:      `0.5px solid ${filter === f.id ? '#444' : '#1e1e1e'}`,
-                  borderRadius: 4,
-                  fontSize:    9,
-                  cursor:      'pointer',
-                  fontFamily:  'monospace',
-                }}
               >
                 {f.label}
-              </button>
+              </Button>
             ))}
           </div>
         )}
       </div>
 
       {/* List */}
-      <div style={{ overflowY: 'auto', maxHeight: compact ? 210 : 560 }}>
-        {displayed.map(msg => (
-          <div
-            key={msg.id}
-            style={{
-              padding:      '5px 10px',
-              borderBottom: '0.5px solid #141414',
-              background:   msgBg(msg.type),
-              display:      'flex',
-              alignItems:   'flex-start',
-              gap:          8,
-            }}
-          >
-            <span style={{
-              fontSize:           9,
-              color:              '#3a3a3a',
-              whiteSpace:         'nowrap',
-              marginTop:          1,
-              fontVariantNumeric: 'tabular-nums',
-            }}>
-              {msg.timestamp}
-            </span>
-            {msg.carClass && (
-              <span style={{ flexShrink: 0 }}>
-                <ClassBadge carClass={msg.carClass} />
+      <div className={cn('overflow-y-auto', compact ? 'max-h-[210px]' : 'max-h-[560px]')}>
+        {displayed.map(msg => {
+          const s = msgStyle(msg.type)
+          return (
+            <div
+              key={msg.id}
+              className={cn(
+                'flex items-start gap-2 px-3 py-2 border-b border-[hsl(var(--background))] text-[10px]',
+                s.bg
+              )}
+            >
+              <span className="text-[9px] text-muted-foreground whitespace-nowrap mt-0.5 tabular shrink-0">
+                {msg.timestamp}
               </span>
-            )}
-            <span style={{ fontSize: 10, color: msgColor(msg.type), lineHeight: 1.5 }}>
-              {msg.text}
-            </span>
-          </div>
-        ))}
+              {msg.carClass && (
+                <span className="shrink-0">
+                  <ClassBadge carClass={msg.carClass} />
+                </span>
+              )}
+              <span className={cn('leading-relaxed', s.text)}>{msg.text}</span>
+            </div>
+          )
+        })}
         {displayed.length === 0 && (
-          <div style={{ padding: 20, textAlign: 'center', fontSize: 10, color: '#333' }}>
+          <div className="py-8 text-center text-[10px] text-muted-foreground">
             해당 유형의 메시지가 없습니다
           </div>
         )}

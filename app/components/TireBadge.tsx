@@ -1,31 +1,23 @@
 'use client'
 
+import { cn } from '@/app/lib/utils'
 import type { Tire } from '@/app/types/race'
 
-const CONFIG: Record<Tire, { bg: string; color: string }> = {
-  S: { bg: '#cccc00', color: '#000' },
-  M: { bg: '#ffffff', color: '#000' },
-  H: { bg: '#ee4444', color: '#fff' },
-  W: { bg: '#0044ee', color: '#fff' },
-  I: { bg: '#00aa55', color: '#fff' },
+const CONFIG: Record<Tire, { bg: string; text: string }> = {
+  S: { bg: 'bg-yellow-400',  text: 'text-black' },
+  M: { bg: 'bg-white',       text: 'text-black' },
+  H: { bg: 'bg-red-500',     text: 'text-white' },
+  W: { bg: 'bg-blue-600',    text: 'text-white' },
+  I: { bg: 'bg-emerald-600', text: 'text-white' },
 }
 
 export default function TireBadge({ tire }: { tire: Tire }) {
-  const c = CONFIG[tire]
+  const c = CONFIG[tire] ?? { bg: 'bg-surface3', text: 'text-foreground' }
   return (
-    <span style={{
-      display:        'inline-flex',
-      alignItems:     'center',
-      justifyContent: 'center',
-      width:          18,
-      height:         18,
-      borderRadius:   '50%',
-      background:     c.bg,
-      color:          c.color,
-      fontSize:       8,
-      fontWeight:     500,
-      flexShrink:     0,
-    }}>
+    <span className={cn(
+      'inline-flex items-center justify-center w-[18px] h-[18px] rounded-full text-[8px] font-semibold shrink-0',
+      c.bg, c.text
+    )}>
       {tire}
     </span>
   )

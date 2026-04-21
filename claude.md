@@ -7,25 +7,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 npm run dev      # Dev server (auto-increments port if 3000 is in use)
 npm run build    # Production build
-npm run lint     # ESLint via next lint
+npm run lint     # ESLint via next lint (first run prompts for config selection)
 ```
 
 No test framework is configured.
 
+**Data scripts** (run against Vercel Blob, require `.env.local`):
+```bash
+npm run push:races         # Upload race JSON files to Vercel Blob
+npm run import:timing71    # Import a timing71 recording into race format
+```
+
 ## Architecture
 
-**WEC Live Timing Dashboard** — Next.js 14 (App Router) + TypeScript + Tailwind CSS. Connects directly from the browser to Griiip's SignalR hub (the backend behind `livetiming.fiawec.com`). No custom backend server; deployment target is Vercel free tier.
+**WEC Live Timing Dashboard** — Next.js 14 (App Router) + TypeScript + Tailwind CSS + shadcn/ui. Connects directly from the browser to Griiip's SignalR hub (the backend behind `livetiming.fiawec.com`). No custom backend server; deployment target is Vercel free tier.
 
 ### Data flow
 
 ```
 Browser
-  → GET https://insights.griiip.com/meta/sessions-schedule-live
-      (find live WEC session by seriesID === 10)
-  → GET https://insights.griiip.com/meta/sessions/${sid}/participants
-      (load car/driver/team roster once per session)
+  → GET /api/griiip/meta/sessions-schedule-live   (Next.js rewrite → insights.griiip.com, CORS bypass)
+      find live WEC session where event.season.seriesID === 10
+  → GET /api/griiip/meta/sessions/${sid}/participants
+      load car/driver/team roster once per session
   → @microsoft/signalr  →  https://insights.griiip.com/live-session-stream
-      (Azure SignalR Service, hub: sessionstreamhub)
+      hub: sessionstreamhub
   → invoke("JoinGroup", "SID-${sid}-${channel}") for each channel
   → listen on "lv-${channel}" events (1-second incremental updates)
 ```
@@ -56,12 +62,13 @@ Browser
 | `app/components/Header.tsx` | Uses `current` round (not `next`) when `phase === 'active'`, even if not live. |
 | `app/data/calendar.ts` | `CURRENT_SEASON` — 2026 WEC calendar. Update each season. |
 | `app/api/timing71/relays/route.ts` | Legacy proxy — no longer used for connection but kept for compatibility. |
+| `app/lib/utils.ts` | `cn()` utility = `clsx` + `tailwind-merge`. Import this for all conditional className composition. |
 
 ### Tabs (`page.tsx`)
 
-`page.tsx` holds all tab state (`Tab` union) and passes data from `useTiming71()` down to components.
+`page.tsx` uses a Radix `<Tabs>` component (from `app/components/ui/tabs.tsx`) with `defaultValue="dashboard"`. It passes data from `useTiming71()` and `useReplay()` down to tab content. There is no manual `useState` for the active tab.
 
-| Tab ID | Label | Components rendered |
+| Tab value | Label | Components rendered |
 |---|---|---|
 | `dashboard` | 대시보드 | `Leaderboard` + `TrackMap` (compact) + `StintOverview` + `MessageFeed` (compact) |
 | `trackmap` | 트랙맵 | `TrackMap` (full) |
@@ -69,6 +76,8 @@ Browser
 | `stints` | 스틴트 분석 | `StintAnalysis` |
 | `messages` | 레이스컨트롤 | `MessageFeed` (full) |
 | `replay` | 📼 다시보기 | `ReplayBrowser` + `ReplayControls` + dashboard view |
+
+The replay tab shows `ReplayControls` inside the `dashboard` tab too when `isReplayMode` is true.
 
 ### Griiip API quirks
 
@@ -81,11 +90,23 @@ Browser
 - **WEC seriesID = 10** in Griiip's schema (`event.season.seriesID`).
 - **No service**: if `/meta/sessions-schedule-live` returns no WEC session, `status === 'no_service'` and dummy data is shown. Initial state uses empty arrays — dummy data is injected only at this point.
 - **Snapshot restore on connect**: `startConnection()` fetches `/api/races/${year}/${round}` before connecting to SignalR. If a saved `RaceData` exists, the latest snapshot is restored immediately (cars, raceInfo, stats, messages) and `snapshotIdxRef` continues from `latest.idx + 1` to avoid overwriting prior snapshots on refresh.
+- **CORS**: All Griiip REST calls go through the `/api/griiip/:path*` Next.js rewrite (see `next.config.js`) to avoid CORS errors on Vercel. Never call `insights.griiip.com` directly from browser code.
 
 ### Design system
 
-- Monospace font everywhere; dark background `#0a0a0a`.
-- Class colors: Hypercar `#ff4040` · LMP2 `#3399ff` · LMGT3 `#33cc44` · fastest lap `#bb55ff` · pit row bg `#160f00`.
+The UI uses **Pit Wall Dark** — a shadcn/ui–based design system. See `DESIGN_SYSTEM.md` for the full reference.
+
+**Guiding principles:**
+- All colors are CSS Custom Properties (HSL) defined in `app/globals.css`. Reference them as `hsl(var(--token))` in Tailwind arbitrary values or via mapped Tailwind tokens in `tailwind.config.ts`.
+- Use `cn()` from `app/lib/utils.ts` for all className composition.
+- Prefer Tailwind classes over inline styles. Inline styles are only acceptable for dynamic values that cannot be expressed as Tailwind utilities (e.g., `gridTemplateColumns`).
+- Use `app/components/ui/` primitives (Badge, Button, Card, Tabs, ScrollArea, Separator, Slider) before writing custom equivalents.
+
+**Key design tokens:**
+- Surfaces: `bg-background` → `bg-surface1` → `bg-card` → `bg-surface2` → `bg-surface3` (elevation scale)
+- Racing classes: `--hypercar` (red) · `--lmp2` (blue) · `--lmgt3` (green) · `--fastest` (purple)
+- Status colors each have three variants: `--{name}` (text), `--{name}-bg`, `--{name}-border`
+- Global utility classes: `.panel` (dark card), `.section-label` (9px uppercase label), `.tabular` (tabular-nums), `.glow-live` / `.glow-danger`
 - Gap/interval display is always class-relative, never overall.
 - `TrackMap` uses `sectorNum` from `Car` (mapped from `RankItem.sectorNumber`) to place car dots near each circuit's `sectorPoints[sectorNum-1]`. Cars in the same sector are spread in a 3-wide grid. Pit cars cluster near S/F. Full GPS-based interpolation is not yet implemented.
 

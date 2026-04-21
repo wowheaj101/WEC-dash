@@ -1,5 +1,8 @@
 'use client'
 
+import { cn } from '@/app/lib/utils'
+import { Button } from '@/app/components/ui/button'
+import { Slider } from '@/app/components/ui/slider'
 import type { RaceMeta, RaceSnapshot } from '@/app/types/replay'
 
 interface Props {
@@ -15,8 +18,7 @@ interface Props {
 
 function fmt(ts: number) {
   return new Date(ts).toLocaleTimeString('ko-KR', {
-    hour: '2-digit', minute: '2-digit',
-    timeZone: 'UTC',
+    hour: '2-digit', minute: '2-digit', timeZone: 'UTC',
   })
 }
 
@@ -28,94 +30,62 @@ export default function ReplayControls({
   const total   = snapshots.length
 
   return (
-    <div style={{
-      background:   '#0f0f0f',
-      border:       '0.5px solid #2a2a2a',
-      borderRadius: 8,
-      padding:      '10px 14px',
-      display:      'flex',
-      flexDirection:'column',
-      gap:          8,
-    }}>
-      {/* Header row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 11, color: '#ff9900' }}>📼 REPLAY</span>
-        <span style={{ fontSize: 11, color: '#ccc', flex: 1 }}>
+    <div className="panel px-4 py-3 flex flex-col gap-3">
+      {/* Header */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[hsl(var(--pit))] text-[11px] font-semibold shrink-0">📼 REPLAY</span>
+        <span className="text-foreground text-[11px] flex-1 truncate">
           {meta.countryFlag} {meta.name}
         </span>
         {current && (
-          <span style={{ fontSize: 10, color: '#555' }}>
-            {current.raceInfo.elapsed} 경과 ({fmt(current.ts)} UTC)
+          <span className="text-[10px] text-muted-foreground tabular shrink-0">
+            {current.raceInfo.elapsed} 경과 · {fmt(current.ts)} UTC
           </span>
         )}
-        <button
-          onClick={onClose}
-          style={{
-            background:   'transparent',
-            border:       '0.5px solid #333',
-            borderRadius: 4,
-            color:        '#555',
-            fontSize:     9,
-            padding:      '2px 8px',
-            cursor:       'pointer',
-            fontFamily:   'monospace',
-          }}
-        >
-          닫기
-        </button>
+        <Button size="sm" variant="ghost" onClick={onClose}>✕ 닫기</Button>
       </div>
 
-      {/* Timeline slider */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {/* Play / Pause */}
-        <button
+      {/* Controls row */}
+      <div className="flex items-center gap-3">
+        <Button
+          size="sm"
+          variant={isPlaying ? 'accent' : 'live'}
           onClick={isPlaying ? onPause : onPlay}
           disabled={total === 0}
-          style={{
-            background:   isPlaying ? '#1a0e00' : '#001a00',
-            border:       `0.5px solid ${isPlaying ? '#553300' : '#005500'}`,
-            borderRadius: 4,
-            color:        isPlaying ? '#ff9900' : '#00ee55',
-            fontSize:     11,
-            padding:      '4px 10px',
-            cursor:       'pointer',
-            fontFamily:   'monospace',
-            flexShrink:   0,
-          }}
+          className="shrink-0"
         >
           {isPlaying ? '⏸ 일시정지' : '▶ 재생'}
-        </button>
+        </Button>
 
-        {/* Slider */}
-        <input
-          type="range"
-          min={0}
-          max={Math.max(0, total - 1)}
-          value={currentIdx}
-          onChange={e => onSeek(Number(e.target.value))}
-          style={{ flex: 1, accentColor: '#ff9900', cursor: 'pointer' }}
-        />
+        <div className="flex-1">
+          <Slider
+            min={0}
+            max={Math.max(0, total - 1)}
+            value={[currentIdx]}
+            onValueChange={([v]) => onSeek(v)}
+          />
+        </div>
 
-        {/* Counter */}
-        <span style={{ fontSize: 10, color: '#444', flexShrink: 0, minWidth: 60, textAlign: 'right' }}>
+        <span className="text-[10px] text-muted-foreground tabular shrink-0 min-w-[52px] text-right">
           {currentIdx + 1} / {total}
         </span>
       </div>
 
-      {/* Snapshot timeline dots (compact) */}
+      {/* Snapshot dots */}
       {total > 0 && total <= 60 && (
-        <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+        <div className="flex gap-1 flex-wrap">
           {snapshots.map((_, i) => (
-            <div
+            <button
               key={i}
               onClick={() => onSeek(i)}
-              style={{
-                width:        8, height: 8,
-                borderRadius: '50%',
-                background:   i === currentIdx ? '#ff9900' : i < currentIdx ? '#553300' : '#1e1e1e',
-                cursor:       'pointer',
-                flexShrink:   0,
-              }}
+              className={cn(
+                'w-2 h-2 rounded-full shrink-0 cursor-pointer transition-colors',
+                i === currentIdx
+                  ? 'bg-[hsl(var(--pit))]'
+                  : i < currentIdx
+                    ? 'bg-[hsl(var(--pit-border))]'
+                    : 'bg-surface3'
+              )}
             />
           ))}
         </div>

@@ -5,6 +5,7 @@ import type { RaceInfo } from '@/app/types/race'
 import { CURRENT_SEASON } from '@/app/data/calendar'
 import { getRoundStatus } from '@/app/lib/getRoundStatus'
 import { useWeather } from '@/app/hooks/useWeather'
+import { cn } from '@/app/lib/utils'
 
 interface Props {
   info:   RaceInfo
@@ -14,16 +15,12 @@ interface Props {
 export default function Header({ info, isLive }: Props) {
   const roundStatus = useMemo(() => getRoundStatus(CURRENT_SEASON), [])
 
-  // Decide which circuit's coords to use for weather:
-  //  - Live: use Timing71 info (session weather from raceInfo)
-  //  - Not live, race active/upcoming: use next/current round coords
   const weatherRound = isLive ? null : (roundStatus.next ?? roundStatus.current)
   const weather = useWeather(
     weatherRound?.lat ?? null,
     weatherRound?.lon ?? null,
   )
 
-  // Display name: live or active phase → current round, otherwise next
   const displayRound = (isLive || roundStatus.phase === 'active')
     ? roundStatus.current ?? roundStatus.next
     : roundStatus.next ?? roundStatus.current
@@ -31,101 +28,78 @@ export default function Header({ info, isLive }: Props) {
   const raceName  = isLive ? info.name  : (displayRound?.name    ?? info.name)
   const roundNum  = isLive ? info.round : (displayRound?.round   ?? info.round)
   const circuit   = displayRound?.circuit ?? ''
-
-  // Weather values: live → Timing71 trackData, not live → Open-Meteo
-  const air      = isLive ? info.weather.air      : (weather?.air       ?? null)
-  const track    = isLive ? info.weather.track    : (weather?.track     ?? null)
-  const humidity = isLive ? info.weather.humidity : (weather?.humidity  ?? null)
+  const air       = isLive ? info.weather.air      : (weather?.air       ?? null)
+  const track     = isLive ? info.weather.track    : (weather?.track     ?? null)
+  const humidity  = isLive ? info.weather.humidity : (weather?.humidity  ?? null)
   const windSpeed = weather?.windSpeed ?? null
-  const icon     = isLive ? '☀️' : (weather?.icon ?? '—')
+  const icon      = isLive ? '☀️' : (weather?.icon ?? '—')
 
   return (
-    <div style={{
-      background:     '#141414',
-      border:         '0.5px solid #2a2a2a',
-      borderRadius:   8,
-      padding:        '8px 12px',
-      display:        'flex',
-      justifyContent: 'space-between',
-      alignItems:     'center',
-      flexWrap:       'wrap',
-      gap:            8,
-    }}>
-      {/* ── Left ── */}
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 500, color: '#fff' }}>
-          {raceName}&nbsp;—&nbsp;Round {roundNum}
+    <div className={cn(
+      'panel flex flex-wrap items-center justify-between gap-3 px-4 py-3',
+      isLive && 'glow-live'
+    )}>
+      {/* Left — race identity */}
+      <div className="flex flex-col gap-0.5 min-w-0">
+        <div className="flex items-center gap-2">
+          {displayRound?.countryFlag && (
+            <span className="text-base leading-none">{displayRound.countryFlag}</span>
+          )}
+          <span className="text-[13px] font-semibold text-foreground truncate">
+            {raceName}
+            <span className="text-muted-foreground font-normal"> — Round {roundNum}</span>
+          </span>
         </div>
         {circuit && (
-          <div style={{ fontSize: 10, color: '#555', marginTop: 1 }}>
-            {circuit}
-          </div>
+          <span className="text-[10px] text-muted-foreground pl-[26px]">{circuit}</span>
         )}
         {isLive && (
-          <div style={{ fontSize: 11, color: '#aaa', marginTop: 3 }}>
-            경과&nbsp;{info.elapsed}&nbsp;/&nbsp;{info.total}
-            &nbsp;&nbsp;|&nbsp;&nbsp;잔여&nbsp;{info.remaining}
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground pl-[26px] tabular">
+            <span>경과 {info.elapsed}</span>
+            <span className="text-border">/</span>
+            <span>{info.total}</span>
+            <span className="text-border">·</span>
+            <span>잔여 {info.remaining}</span>
           </div>
         )}
       </div>
 
-      {/* ── Right ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        {/* Weather */}
-        <span style={{ fontSize: 11, color: '#aaa', display: 'flex', gap: 6, alignItems: 'center' }}>
-          <span>{icon}</span>
-          {air !== null
-            ? <>
-                <span>기온&nbsp;{air}°C</span>
-                <span style={{ color: '#444' }}>|</span>
-                <span>트랙&nbsp;{track}°C</span>
-                <span style={{ color: '#444' }}>|</span>
-                <span>습도&nbsp;{humidity}%</span>
-                {windSpeed !== null && !isLive && (
-                  <>
-                    <span style={{ color: '#444' }}>|</span>
-                    <span>풍속&nbsp;{windSpeed}km/h</span>
-                  </>
-                )}
-              </>
-            : <span style={{ color: '#444' }}>날씨 로딩 중…</span>
-          }
-        </span>
+      {/* Right — weather + session status */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {/* Weather row */}
+        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+          <span className="text-sm">{icon}</span>
+          {air !== null ? (
+            <>
+              <span>기온 <span className="text-foreground">{air}°C</span></span>
+              <span className="text-border">|</span>
+              <span>트랙 <span className="text-foreground">{track}°C</span></span>
+              <span className="text-border">|</span>
+              <span>습도 <span className="text-foreground">{humidity}%</span></span>
+              {windSpeed !== null && !isLive && (
+                <>
+                  <span className="text-border">|</span>
+                  <span>풍속 <span className="text-foreground">{windSpeed}km/h</span></span>
+                </>
+              )}
+            </>
+          ) : (
+            <span>날씨 로딩 중…</span>
+          )}
+        </div>
 
         {/* Session badge */}
         {isLive ? (
-          <span style={{
-            display:      'inline-flex',
-            alignItems:   'center',
-            gap:          5,
-            background:   '#003d00',
-            color:        '#00ff66',
-            fontSize:     10,
-            padding:      '3px 8px',
-            borderRadius: 4,
-            border:       '0.5px solid #00ff66',
-            whiteSpace:   'nowrap',
-          }}>
-            <span className="dot-blink" style={{
-              display: 'inline-block', width: 6, height: 6,
-              borderRadius: '50%', background: '#00ff66', flexShrink: 0,
-            }} />
+          <span className={cn(
+            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-medium',
+            'bg-[hsl(var(--live-bg))] text-[hsl(var(--live))] border border-[hsl(var(--live-border))]'
+          )}>
+            <span className="dot-blink inline-block w-1.5 h-1.5 rounded-full bg-[hsl(var(--live))] shrink-0" />
             RACE IN PROGRESS
           </span>
         ) : (
-          <span style={{
-            display:      'inline-flex',
-            alignItems:   'center',
-            gap:          5,
-            background:   '#111',
-            color:        '#555',
-            fontSize:     10,
-            padding:      '3px 8px',
-            borderRadius: 4,
-            border:       '0.5px solid #222',
-            whiteSpace:   'nowrap',
-          }}>
-            {displayRound?.countryFlag}&nbsp;{displayRound?.duration ?? '—'}
+          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] text-muted-foreground bg-surface1 border border-border">
+            {displayRound?.duration ?? '—'}
           </span>
         )}
       </div>

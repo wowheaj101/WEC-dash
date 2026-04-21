@@ -1,24 +1,26 @@
 'use client'
 
+import { cn } from '@/app/lib/utils'
+import { Badge } from '@/app/components/ui/badge'
 import type { RaceMeta } from '@/app/types/replay'
 
 interface Props {
-  raceList:    RaceMeta[]
-  loading:     boolean
-  onSelect:    (meta: RaceMeta) => void
+  raceList:  RaceMeta[]
+  loading:   boolean
+  onSelect:  (meta: RaceMeta) => void
 }
 
-const CLASS_COLORS: Record<string, string> = {
-  '~12h': '#ff9900',
-  '6h':   '#3399ff',
-  '8h':   '#bb55ff',
-  '24h':  '#ff4040',
+const DURATION_VARIANT: Record<string, 'warning' | 'info' | 'purple' | 'danger'> = {
+  '~12h': 'warning',
+  '6h':   'info',
+  '8h':   'purple',
+  '24h':  'danger',
 }
 
 export default function ReplayBrowser({ raceList, loading, onSelect }: Props) {
   if (loading) {
     return (
-      <div style={{ padding: 40, textAlign: 'center', color: '#444', fontSize: 12 }}>
+      <div className="py-10 text-center text-[12px] text-muted-foreground">
         레이스 목록 불러오는 중…
       </div>
     )
@@ -26,122 +28,52 @@ export default function ReplayBrowser({ raceList, loading, onSelect }: Props) {
 
   if (!raceList.length) {
     return (
-      <div style={{
-        padding:       60,
-        textAlign:     'center',
-        color:         '#444',
-        fontSize:      12,
-        background:    '#0f0f0f',
-        borderRadius:  8,
-        border:        '0.5px solid #1e1e1e',
-      }}>
-        <div style={{ fontSize: 28, marginBottom: 12 }}>📼</div>
-        <div style={{ color: '#555', lineHeight: 1.8 }}>
+      <div className="panel flex flex-col items-center justify-center gap-3 py-16 text-center">
+        <span className="text-4xl">📼</span>
+        <p className="text-[12px] text-muted-foreground leading-relaxed">
           저장된 레이스가 없습니다.<br />
           라이브 레이스가 시작되면 자동으로 저장됩니다.
-        </div>
+        </p>
       </div>
     )
   }
 
-  // 연도별로 그룹핑
   const byYear: Record<number, RaceMeta[]> = {}
   for (const r of raceList) {
     ;(byYear[r.year] ??= []).push(r)
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="flex flex-col gap-5">
       {Object.entries(byYear)
         .sort(([a], [b]) => Number(b) - Number(a))
         .map(([year, races]) => (
           <div key={year}>
-            <div style={{
-              fontSize:     10,
-              color:        '#444',
-              marginBottom: 8,
-              letterSpacing: 1,
-              textTransform: 'uppercase',
-            }}>
-              {year} Season
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {races
-                .sort((a, b) => a.round - b.round)
-                .map(race => (
-                  <button
-                    key={race.id}
-                    onClick={() => onSelect(race)}
-                    style={{
-                      display:        'flex',
-                      alignItems:     'center',
-                      gap:            10,
-                      background:     '#0f0f0f',
-                      border:         '0.5px solid #1e1e1e',
-                      borderRadius:   6,
-                      padding:        '10px 14px',
-                      cursor:         'pointer',
-                      textAlign:      'left',
-                      width:          '100%',
-                      fontFamily:     'monospace',
-                      transition:     'border-color 0.15s',
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.borderColor = '#333')}
-                    onMouseLeave={e => (e.currentTarget.style.borderColor = '#1e1e1e')}
-                  >
-                    {/* Round badge */}
-                    <span style={{
-                      fontSize:     9,
-                      color:        '#555',
-                      background:   '#141414',
-                      border:       '0.5px solid #2a2a2a',
-                      borderRadius: 4,
-                      padding:      '2px 6px',
-                      whiteSpace:   'nowrap',
-                      flexShrink:   0,
-                    }}>
-                      R{race.round}
-                    </span>
-
-                    {/* Flag */}
-                    <span style={{ fontSize: 16, flexShrink: 0 }}>{race.countryFlag}</span>
-
-                    {/* Name */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, color: '#ccc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {race.name}
-                      </div>
-                      <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>
-                        {race.circuit}
-                      </div>
-                    </div>
-
-                    {/* Duration badge */}
-                    <span style={{
-                      fontSize:     9,
-                      color:        CLASS_COLORS[race.duration] ?? '#555',
-                      background:   '#141414',
-                      border:       `0.5px solid ${CLASS_COLORS[race.duration] ?? '#2a2a2a'}`,
-                      borderRadius: 4,
-                      padding:      '2px 6px',
-                      flexShrink:   0,
-                    }}>
-                      {race.duration}
-                    </span>
-
-                    {/* Snapshot count */}
-                    <span style={{ fontSize: 9, color: '#444', flexShrink: 0 }}>
-                      {race.snapshots} snaps
-                    </span>
-
-                    {/* Date */}
-                    <span style={{ fontSize: 9, color: '#444', flexShrink: 0 }}>
-                      {race.date}
-                    </span>
-
-                    <span style={{ color: '#333', fontSize: 12, flexShrink: 0 }}>›</span>
-                  </button>
-                ))}
+            <div className="section-label mb-2">{year} Season</div>
+            <div className="flex flex-col gap-1">
+              {races.sort((a, b) => a.round - b.round).map(race => (
+                <button
+                  key={race.id}
+                  onClick={() => onSelect(race)}
+                  className={cn(
+                    'panel flex items-center gap-3 px-4 py-3 text-left w-full',
+                    'transition-colors hover:bg-surface2 cursor-pointer'
+                  )}
+                >
+                  <Badge variant="muted" className="text-[9px] shrink-0">R{race.round}</Badge>
+                  <span className="text-base shrink-0">{race.countryFlag}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[12px] text-foreground truncate">{race.name}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">{race.circuit}</div>
+                  </div>
+                  <Badge variant={DURATION_VARIANT[race.duration] ?? 'default'}>
+                    {race.duration}
+                  </Badge>
+                  <span className="text-[9px] text-muted-foreground shrink-0">{race.snapshots} snaps</span>
+                  <span className="text-[9px] text-muted-foreground shrink-0">{race.date}</span>
+                  <span className="text-border text-[12px] shrink-0">›</span>
+                </button>
+              ))}
             </div>
           </div>
         ))}
