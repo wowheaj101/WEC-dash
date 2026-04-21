@@ -12,6 +12,7 @@ export interface RoundStatus {
   phase:        RoundPhase
   current:      WECRound | null   // 진행 중이거나 가장 최근 완료 라운드
   next:         WECRound | null   // 다음 예정 라운드
+  previous:     WECRound | null   // raceEnd < now 인 가장 최근 라운드 (현재 진행 중인 라운드는 제외)
   daysUntilNext: number | null    // 다음 라운드까지 남은 일수 (소수 포함)
 }
 
@@ -25,6 +26,11 @@ export function getRoundStatus(
 
   const nowMs = now.getTime()
 
+  // 가장 최근 완료된 라운드 (raceEnd < now)
+  const previous = [...sorted]
+    .reverse()
+    .find(r => new Date(r.raceEnd).getTime() < nowMs) ?? null
+
   for (let i = 0; i < sorted.length; i++) {
     const round     = sorted[i]
     const startMs   = new Date(round.raceStart).getTime()
@@ -36,6 +42,7 @@ export function getRoundStatus(
         phase:         'active',
         current:       round,
         next:          sorted[i + 1] ?? null,
+        previous,
         daysUntilNext: null,
       }
     }
@@ -45,6 +52,7 @@ export function getRoundStatus(
         phase:         'post_race',
         current:       round,
         next:          sorted[i + 1] ?? null,
+        previous,
         daysUntilNext: sorted[i + 1]
           ? (new Date(sorted[i + 1].raceStart).getTime() - nowMs) / 86_400_000
           : null,
@@ -58,6 +66,7 @@ export function getRoundStatus(
         phase,
         current:       i > 0 ? sorted[i - 1] : null,
         next:          round,
+        previous,
         daysUntilNext: daysUntil,
       }
     }
@@ -68,6 +77,7 @@ export function getRoundStatus(
     phase:         'post_season',
     current:       sorted[sorted.length - 1] ?? null,
     next:          null,
+    previous,
     daysUntilNext: null,
   }
 }

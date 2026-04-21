@@ -26,6 +26,7 @@ async function main() {
     access: 'private',
     contentType: 'application/json',
     addRandomSuffix: false,
+    allowOverwrite: true,
   })
 
   // 2) Upload each race json referenced by index
@@ -42,6 +43,7 @@ async function main() {
         access: 'private',
         contentType: 'application/json',
         addRandomSuffix: false,
+    allowOverwrite: true,
       })
       ok++
       // eslint-disable-next-line no-console

@@ -3,17 +3,17 @@
 import type { CarStint, Tire } from '@/app/types/race'
 
 const CLASS_COLOR: Record<string, string> = {
-  HYPERCAR: '#ff4444',
-  LMP2:     '#4488ff',
-  LMGT3:    '#44cc55',
+  HYPERCAR: 'hsl(var(--hypercar))',
+  LMP2:     'hsl(var(--lmp2))',
+  LMGT3:    'hsl(var(--lmgt3))',
 }
 
 const TIRE_COLOR: Record<Tire, { bg: string; text: string }> = {
-  S: { bg: '#d4b800', text: '#000' },
-  M: { bg: '#d0d0d0', text: '#000' },
-  H: { bg: '#cc2222', text: '#fff' },
-  W: { bg: '#2255cc', text: '#fff' },
-  I: { bg: '#229944', text: '#fff' },
+  S: { bg: '#ffd400',  text: '#000' },
+  M: { bg: '#f5f5f7',  text: '#000' },
+  H: { bg: '#ff2e2e',  text: '#fff' },
+  W: { bg: '#3a8cff',  text: '#fff' },
+  I: { bg: '#27d36b',  text: '#000' },
 }
 
 const TIRE_LABEL: Record<Tire, string> = {
@@ -26,207 +26,145 @@ interface Props {
 }
 
 export default function StintTimeline({ carStints, totalLaps }: Props) {
-  const lapTicks = Array.from({ length: Math.floor(totalLaps / 10) + 1 }, (_, i) => i * 10)
-    .filter(l => l <= totalLaps)
+  const safeLaps = Math.max(totalLaps, 1)
+  const lapTicks = Array.from({ length: Math.floor(safeLaps / 10) + 1 }, (_, i) => i * 10)
+    .filter(l => l <= safeLaps)
 
   return (
-    <div style={{
-      background:   '#0f0f0f',
-      border:       '0.5px solid #2a2a2a',
-      borderRadius: 8,
-      padding:      12,
-      overflowX:    'auto',
-    }}>
-      <div style={{ fontSize: 10, color: '#555', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
-        스틴트 타임라인
+    <div className="panel flex flex-col overflow-hidden">
+      <div className="panel-header">
+        STINT TIMELINE
+        <span className="ml-auto mono text-[10px] text-fg3 font-normal tracking-[1px]">
+          LAP 0 — {safeLaps}
+        </span>
       </div>
 
-      <div style={{ minWidth: 560 }}>
-        {/* Lap ruler */}
-        <div style={{ display: 'flex', marginLeft: 128, marginBottom: 6, position: 'relative', height: 14 }}>
-          {lapTicks.map(lap => (
-            <div
-              key={lap}
-              style={{
-                position:   'absolute',
-                left:       `${(lap / totalLaps) * 100}%`,
-                fontSize:   8,
-                color:      '#333',
-                borderLeft: '0.5px solid #1e1e1e',
-                paddingLeft: 3,
-                paddingTop:  2,
-              }}
-            >
-              {lap}
-            </div>
-          ))}
-          <div style={{
-            position: 'absolute',
-            right:    0,
-            fontSize: 8,
-            color:    '#333',
-            paddingTop: 2,
-          }}>
-            {totalLaps}
+      <div className="p-4 overflow-x-auto">
+        <div style={{ minWidth: 620 }}>
+          {/* Lap ruler */}
+          <div className="relative h-4 mb-2" style={{ marginLeft: 140 }}>
+            {lapTicks.map(lap => (
+              <div
+                key={lap}
+                className="absolute mono text-[9px] text-fg4 pl-1 pt-0.5 border-l border-line1"
+                style={{ left: `${(lap / safeLaps) * 100}%` }}
+              >
+                {lap}
+              </div>
+            ))}
+            <div className="absolute right-0 mono text-[9px] text-fg4 pt-0.5">{safeLaps}</div>
           </div>
-        </div>
 
-        {/* Car rows */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {carStints.map(car => {
-            const clsColor = CLASS_COLOR[car.carClass]
-            return (
-              <div key={car.carNum} style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-                {/* Label */}
-                <div style={{
-                  width:      128,
-                  flexShrink: 0,
-                  display:    'flex',
-                  alignItems: 'center',
-                  gap:        6,
-                  paddingRight: 10,
-                }}>
-                  <span style={{
-                    fontSize:  12,
-                    fontWeight: 600,
-                    color:     '#fff',
-                    minWidth:  24,
-                    textAlign: 'right',
-                  }}>
-                    {car.carNum}
-                  </span>
-                  <div>
-                    <div style={{ fontSize: 8, color: clsColor, lineHeight: 1, marginBottom: 1 }}>
-                      {car.carClass}
-                    </div>
-                    <div style={{
-                      fontSize:     8,
-                      color:        '#444',
-                      whiteSpace:   'nowrap',
-                      overflow:     'hidden',
-                      textOverflow: 'ellipsis',
-                      maxWidth:     82,
-                    }}>
-                      {car.team.split(' ').slice(0, 2).join(' ')}
+          {/* Car rows */}
+          <div className="flex flex-col gap-1">
+            {carStints.map(car => {
+              const clsColor = CLASS_COLOR[car.carClass]
+              return (
+                <div key={car.carNum} className="flex items-center">
+                  {/* Label */}
+                  <div className="flex items-center gap-2 pr-3" style={{ width: 140, flexShrink: 0 }}>
+                    <span className="disp text-[16px] font-bold text-fg0 text-right" style={{ minWidth: 28 }}>
+                      {car.carNum}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="disp text-[9px] font-bold tracking-[1.2px]" style={{ color: clsColor }}>
+                        {car.carClass}
+                      </div>
+                      <div className="mono text-[9px] text-fg4 truncate" style={{ maxWidth: 94 }}>
+                        {car.team.split(' ').slice(0, 2).join(' ')}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Timeline */}
-                <div style={{
-                  flex:         1,
-                  height:       22,
-                  background:   '#111',
-                  borderRadius: 3,
-                  position:     'relative',
-                  overflow:     'hidden',
-                }}>
-                  {/* Lap grid lines */}
-                  {lapTicks.filter(l => l > 0).map(lap => (
-                    <div
-                      key={lap}
-                      style={{
-                        position:   'absolute',
-                        left:       `${(lap / totalLaps) * 100}%`,
-                        top:        0,
-                        bottom:     0,
-                        width:      '0.5px',
-                        background: '#1a1a1a',
-                      }}
-                    />
-                  ))}
-
-                  {/* Stint blocks */}
-                  {car.stints.map((stint, i) => {
-                    const start     = ((stint.startLap - 1) / totalLaps) * 100
-                    const end       = stint.endLap !== null
-                      ? (stint.endLap / totalLaps) * 100
-                      : 100
-                    const width     = Math.max(end - start, 0.5)
-                    const isRunning = stint.endLap === null
-                    const tc        = TIRE_COLOR[stint.tire]
-                    const title     = [
-                      `${stint.tire} (${TIRE_LABEL[stint.tire]})`,
-                      `Laps ${stint.startLap}–${stint.endLap ?? '...'}`,
-                      stint.avgLap ? `avg ${stint.avgLap}` : '',
-                    ].filter(Boolean).join(' — ')
-
-                    return (
+                  {/* Timeline */}
+                  <div className="flex-1 h-[24px] bg-bg0 relative overflow-hidden border border-line1">
+                    {/* Lap grid lines */}
+                    {lapTicks.filter(l => l > 0).map(lap => (
                       <div
-                        key={i}
-                        title={title}
-                        style={{
-                          position: 'absolute',
-                          left:     `${start}%`,
-                          width:    `${width}%`,
-                          top:      1,
-                          bottom:   1,
-                          background: isRunning
-                            ? `repeating-linear-gradient(90deg,${tc.bg} 0px,${tc.bg} 10px,${tc.bg}99 10px,${tc.bg}99 12px)`
-                            : tc.bg,
-                          borderRadius: 2,
-                          display:      'flex',
-                          alignItems:   'center',
-                          justifyContent: 'center',
-                          overflow:     'hidden',
-                        }}
-                      >
-                        {width > 4 && (
-                          <span style={{ fontSize: 8, color: tc.text, fontWeight: 700 }}>
-                            {stint.tire}
-                          </span>
-                        )}
-                      </div>
-                    )
-                  })}
-
-                  {/* Pit stop markers */}
-                  {car.stints.slice(0, -1).map((stint, i) => {
-                    if (stint.endLap === null) return null
-                    const pos = (stint.endLap / totalLaps) * 100
-                    return (
-                      <div
-                        key={`pit-${i}`}
-                        title={`Pit — ${stint.pitDuration}s`}
-                        style={{
-                          position:   'absolute',
-                          left:       `${pos}%`,
-                          top:        0,
-                          bottom:     0,
-                          width:      2,
-                          background: '#ff9900',
-                          zIndex:     10,
-                        }}
+                        key={lap}
+                        className="absolute top-0 bottom-0 bg-line1"
+                        style={{ left: `${(lap / safeLaps) * 100}%`, width: '1px' }}
                       />
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
+                    ))}
 
-      {/* Legend */}
-      <div style={{ display:'flex', gap:10, marginTop:12, fontSize:9, color:'#444', flexWrap:'wrap', alignItems:'center' }}>
-        {(['S','M','H','W','I'] as Tire[]).map(t => {
-          const tc = TIRE_COLOR[t]
-          return (
-            <span key={t} style={{ display:'flex', alignItems:'center', gap:3 }}>
-              <span style={{
-                width:14, height:10, background:tc.bg, borderRadius:2,
-                display:'inline-flex', alignItems:'center', justifyContent:'center',
-              }}>
-                <span style={{ fontSize:7, color:tc.text, fontWeight:700 }}>{t}</span>
-              </span>
-              {TIRE_LABEL[t]}
+                    {/* Stint blocks */}
+                    {car.stints.map((stint, i) => {
+                      const start     = ((stint.startLap - 1) / safeLaps) * 100
+                      const end       = stint.endLap !== null
+                        ? (stint.endLap / safeLaps) * 100
+                        : 100
+                      const width     = Math.max(end - start, 0.5)
+                      const isRunning = stint.endLap === null
+                      const tc        = TIRE_COLOR[stint.tire]
+                      const title     = [
+                        `${stint.tire} (${TIRE_LABEL[stint.tire]})`,
+                        `Laps ${stint.startLap}–${stint.endLap ?? '...'}`,
+                        stint.avgLap ? `avg ${stint.avgLap}` : '',
+                      ].filter(Boolean).join(' — ')
+
+                      return (
+                        <div
+                          key={i}
+                          title={title}
+                          className="absolute flex items-center justify-center overflow-hidden disp font-bold"
+                          style={{
+                            left:     `${start}%`,
+                            width:    `${width}%`,
+                            top:      1,
+                            bottom:   1,
+                            background: isRunning
+                              ? `repeating-linear-gradient(90deg,${tc.bg} 0px,${tc.bg} 10px,${tc.bg}99 10px,${tc.bg}99 12px)`
+                              : tc.bg,
+                            color: tc.text,
+                            fontSize: 10,
+                          }}
+                        >
+                          {width > 4 && <span>{stint.tire}·{(stint.endLap ?? safeLaps) - stint.startLap + 1}L</span>}
+                        </div>
+                      )
+                    })}
+
+                    {/* Pit stop markers */}
+                    {car.stints.slice(0, -1).map((stint, i) => {
+                      if (stint.endLap === null) return null
+                      const pos = (stint.endLap / safeLaps) * 100
+                      return (
+                        <div
+                          key={`pit-${i}`}
+                          title={`Pit — ${stint.pitDuration}s`}
+                          className="absolute top-0 bottom-0 bg-pit z-10"
+                          style={{ left: `${pos}%`, width: 2 }}
+                        />
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Legend */}
+          <div className="flex gap-3 mt-4 text-[10px] text-fg3 flex-wrap items-center">
+            {(['S','M','H','W','I'] as Tire[]).map(t => {
+              const tc = TIRE_COLOR[t]
+              return (
+                <span key={t} className="flex items-center gap-1.5">
+                  <span
+                    className="inline-flex items-center justify-center font-bold"
+                    style={{ width: 16, height: 12, background: tc.bg, color: tc.text, fontSize: 8 }}
+                  >
+                    {t}
+                  </span>
+                  <span className="disp tracking-[1px] uppercase">{TIRE_LABEL[t]}</span>
+                </span>
+              )
+            })}
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block bg-pit" style={{ width: 2, height: 12 }} />
+              <span className="disp tracking-[1px] uppercase">PIT</span>
             </span>
-          )
-        })}
-        <span style={{ display:'flex', alignItems:'center', gap:3 }}>
-          <span style={{ width:2, height:10, background:'#ff9900', display:'inline-block' }} />
-          피트스톱
-        </span>
+          </div>
+        </div>
       </div>
     </div>
   )

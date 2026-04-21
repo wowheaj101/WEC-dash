@@ -4,3 +4,10 @@ node_modules/
 *.tsbuildinfo
 
 .vercel
+
+# Local IDE / agent settings
+.claude/
+
+# Reference materials (not part of the app)
+*.pdf
+privious race data/

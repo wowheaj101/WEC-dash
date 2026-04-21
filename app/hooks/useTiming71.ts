@@ -37,6 +37,7 @@ export type ConnStatus =
   | 'discovering'
   | 'live'
   | 'no_service'
+  | 'showing_previous'   // 라이브 세션 없음 — 직전 완료 라운드의 마지막 snapshot 표시 중
   | 'disconnected'
   | 'error'
 
@@ -430,6 +431,7 @@ export function useTiming71(): UseTiming71Result {
       },
 
       onNoService: () => {
+        // 일단 dummy 로 채우고, 직전 완료 라운드 데이터가 있으면 비동기로 교체
         setStatus('no_service')
         setCars(dummyCars)
         setRaceInfo(dummyRaceInfo)
@@ -437,6 +439,22 @@ export function useTiming71(): UseTiming71Result {
         setMessages(dummyMessages)
         setCarStints(dummyCarStints)
         setDriverStats(dummyDriverStats)
+
+        const previous = getRoundStatus(CURRENT_SEASON).previous
+        if (!previous) return
+        const year = new Date(previous.raceStart).getFullYear()
+        fetch(`/api/races/${year}/${previous.round}`)
+          .then(r => r.ok ? r.json() as Promise<RaceData> : null)
+          .then(data => {
+            if (!data || data.snapshots.length === 0) return
+            const latest = data.snapshots[data.snapshots.length - 1]
+            setCars(latest.cars)
+            setRaceInfo(latest.raceInfo)
+            setStats(latest.stats)
+            setMessages(latest.messages)
+            setStatus('showing_previous')
+          })
+          .catch(() => { /* keep dummy */ })
       },
 
       onSchedule: (schedule) => {

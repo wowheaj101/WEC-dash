@@ -4,13 +4,13 @@
       "id": "2026-r1",
       "year": 2026,
       "round": 1,
-      "name": "6 Hours of Imola - FP1",
-      "circuit": "Imola",
+      "name": "6 Hours of Imola",
+      "circuit": "Autodromo Enzo e Dino Ferrari",
       "countryFlag": "🇮🇹",
-      "duration": "~1h",
-      "date": "2026-04-17",
-      "snapshots": 29,
-      "updatedAt": 1776519581309
+      "duration": "6h",
+      "date": "2026-04-19",
+      "snapshots": 1,
+      "updatedAt": 1776771102131
     },
     {
       "id": "2025-r3",

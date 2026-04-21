@@ -1,7 +1,6 @@
 'use client'
 
 import { cn } from '@/app/lib/utils'
-import { Button } from '@/app/components/ui/button'
 import { Slider } from '@/app/components/ui/slider'
 import type { RaceMeta, RaceSnapshot } from '@/app/types/replay'
 
@@ -30,32 +29,35 @@ export default function ReplayControls({
   const total   = snapshots.length
 
   return (
-    <div className="panel px-4 py-3 flex flex-col gap-3">
+    <div className="panel flex flex-col gap-3 px-4 py-3" style={{ borderLeft: '3px solid hsl(var(--pit))' }}>
       {/* Header */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[hsl(var(--pit))] text-[11px] font-semibold shrink-0">📼 REPLAY</span>
-        <span className="text-foreground text-[11px] flex-1 truncate">
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="disp font-bold text-pit text-[11px] tracking-[1.5px] shrink-0">📼 REPLAY</span>
+        <span className="disp text-fg0 text-[13px] font-semibold flex-1 truncate">
           {meta.countryFlag} {meta.name}
         </span>
         {current && (
-          <span className="text-[10px] text-muted-foreground tabular shrink-0">
-            {current.raceInfo.elapsed} 경과 · {fmt(current.ts)} UTC
+          <span className="mono text-[10px] text-fg3 shrink-0">
+            {current.raceInfo.elapsed} · {fmt(current.ts)} UTC
           </span>
         )}
-        <Button size="sm" variant="ghost" onClick={onClose}>✕ 닫기</Button>
+        <button onClick={onClose} className="btn-ghost">✕ CLOSE</button>
       </div>
 
       {/* Controls row */}
       <div className="flex items-center gap-3">
-        <Button
-          size="sm"
-          variant={isPlaying ? 'accent' : 'live'}
+        <button
           onClick={isPlaying ? onPause : onPlay}
           disabled={total === 0}
-          className="shrink-0"
+          className={cn(
+            'disp shrink-0 px-4 py-1.5 font-bold text-[11px] tracking-[1.5px] uppercase cursor-pointer border transition-colors disabled:opacity-40',
+            isPlaying
+              ? 'bg-pit text-black border-pit'
+              : 'bg-live text-black border-live',
+          )}
         >
-          {isPlaying ? '⏸ 일시정지' : '▶ 재생'}
-        </Button>
+          {isPlaying ? '⏸ PAUSE' : '▶ PLAY'}
+        </button>
 
         <div className="flex-1">
           <Slider
@@ -66,7 +68,7 @@ export default function ReplayControls({
           />
         </div>
 
-        <span className="text-[10px] text-muted-foreground tabular shrink-0 min-w-[52px] text-right">
+        <span className="mono text-[11px] text-fg2 shrink-0 min-w-[60px] text-right">
           {currentIdx + 1} / {total}
         </span>
       </div>
@@ -81,10 +83,10 @@ export default function ReplayControls({
               className={cn(
                 'w-2 h-2 rounded-full shrink-0 cursor-pointer transition-colors',
                 i === currentIdx
-                  ? 'bg-[hsl(var(--pit))]'
+                  ? 'bg-pit'
                   : i < currentIdx
                     ? 'bg-[hsl(var(--pit-border))]'
-                    : 'bg-surface3'
+                    : 'bg-bg3',
               )}
             />
           ))}

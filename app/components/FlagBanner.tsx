@@ -3,48 +3,56 @@
 import { cn } from '@/app/lib/utils'
 import type { FlagStatus } from '@/app/types/race'
 
-const CONFIG: Record<FlagStatus, {
-  bg: string; border: string; text: string; dot: string; label: string
+const FLAG_CFG: Record<FlagStatus, {
+  label:     string
+  color:     string   // hsl var name — for dynamic bg/text
+  sectorBar: string   // border color for sector cards
+  sectorText:string   // sector card label color
 }> = {
-  GREEN:  {
-    bg:     'bg-[#002200]',
-    border: 'border-[#00aa44]',
-    text:   'text-[#00ff66]',
-    dot:    'bg-[#00ff66]',
-    label:  'GREEN FLAG — RACE RUNNING',
-  },
-  YELLOW: {
-    bg:     'bg-[#261800]',
-    border: 'border-[#cc8800]',
-    text:   'text-[#ffaa00]',
-    dot:    'bg-[#ffaa00]',
-    label:  'YELLOW FLAG — CAUTION',
-  },
-  SC: {
-    bg:     'bg-[#1a0e00]',
-    border: 'border-[#ff7700]',
-    text:   'text-[#ff9933]',
-    dot:    'bg-[#ff9933]',
-    label:  'SAFETY CAR DEPLOYED',
-  },
-  RED: {
-    bg:     'bg-[#200000]',
-    border: 'border-[#cc0000]',
-    text:   'text-[#ff4444]',
-    dot:    'bg-[#ff4444]',
-    label:  'RED FLAG — SESSION SUSPENDED',
-  },
+  GREEN:  { label: 'GREEN FLAG',  color: 'var(--flag-green)',  sectorBar: 'var(--flag-green)',  sectorText: 'var(--flag-green)' },
+  YELLOW: { label: 'YELLOW',      color: 'var(--flag-yellow)', sectorBar: 'var(--flag-yellow)', sectorText: 'var(--flag-yellow)' },
+  SC:     { label: 'SAFETY CAR',  color: 'var(--flag-sc)',     sectorBar: 'var(--flag-sc)',     sectorText: 'var(--flag-sc)' },
+  RED:    { label: 'RED FLAG',    color: 'var(--flag-red)',    sectorBar: 'var(--flag-red)',    sectorText: 'var(--flag-red)' },
 }
 
 export default function FlagBanner({ flag }: { flag: FlagStatus }) {
-  const c = CONFIG[flag]
+  const cfg = FLAG_CFG[flag]
+  // Static sector/meta display — filled by real data when available.
+  const sectors = ['S1', 'S2', 'S3']
   return (
-    <div className={cn(
-      'flex items-center justify-center gap-2 py-1.5 rounded-lg border text-[11px] font-semibold tracking-[0.2em]',
-      c.bg, c.border, c.text
-    )}>
-      <span className={cn('w-1.5 h-1.5 rounded-full shrink-0 dot-blink', c.dot)} />
-      {c.label}
+    <div className="flex items-center gap-3 px-6 py-3 bg-bg1 border-b border-line1">
+      {/* Chevron flag tag */}
+      <span
+        className="disp chev-tag text-black"
+        style={{
+          background: `hsl(${cfg.color})`,
+          padding: '5px 14px 5px 10px',
+          clipPath: 'polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%)',
+          letterSpacing: '1.5px',
+          fontSize: 12,
+        }}
+      >
+        <span className="w-2 h-2 bg-black shrink-0" style={{ borderRadius: 1 }} />
+        {cfg.label}
+      </span>
+
+      {/* Sector cards */}
+      <div className="flex gap-1.5 flex-1 min-w-0">
+        {sectors.map((s) => (
+          <div
+            key={s}
+            className="flex-1 min-w-0 px-3 py-1.5 flex items-center justify-between bg-bg2"
+            style={{ borderLeft: `3px solid hsl(${cfg.sectorBar})` }}
+          >
+            <span
+              className="disp font-bold tracking-[1.5px] text-[11px] uppercase truncate"
+              style={{ color: `hsl(${cfg.sectorText})` }}
+            >
+              {s} · {flag === 'GREEN' ? 'CLEAR' : flag}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

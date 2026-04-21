@@ -7,12 +7,12 @@ import ClassBadge from './ClassBadge'
 import StatusBadge from './StatusBadge'
 
 export const GRID_COLS =
-  '28px 32px 60px 32px minmax(120px,1fr) 44px 46px 72px 72px 68px 60px 56px'
+  '56px 96px 58px minmax(160px,1fr) 92px 104px 92px 60px'
 
-const CLS_POS_COLOR: Record<string, string> = {
-  HYPERCAR: 'text-[hsl(var(--hypercar))]',
-  LMP2:     'text-[hsl(var(--lmp2))]',
-  LMGT3:    'text-[hsl(var(--lmgt3))]',
+const CLS_COLOR: Record<string, string> = {
+  HYPERCAR: 'hsl(var(--hypercar))',
+  LMP2:     'hsl(var(--lmp2))',
+  LMGT3:    'hsl(var(--lmgt3))',
 }
 
 interface Props {
@@ -22,80 +22,89 @@ interface Props {
 
 export default function LeaderboardRow({ car, isClassBorder }: Props) {
   const isPit = car.status === 'PIT'
+  const isLeader = car.pos === 1
 
-  const gapClass = car.gap === 'LEAD'
-    ? 'text-yellow-300'
-    : car.gap.includes('Lap') ? 'text-muted-foreground' : 'text-[#aaa]'
+  const gapIsLead = car.gap === 'LEAD'
+  const gapClass = gapIsLead
+    ? 'text-pit'
+    : car.gap.includes('Lap') ? 'text-fg3' : 'text-fg0'
 
-  const intClass = car.interval === '—' || car.interval.includes('Lap')
-    ? 'text-muted-foreground'
-    : 'text-[#888]'
-
-  const lastClass = car.isFastestLap
-    ? 'text-[hsl(var(--fastest))]'
-    : isPit ? 'text-muted-foreground' : 'text-foreground'
-
-  const bestClass = car.isFastestLap ? 'text-[hsl(var(--fastest))]' : 'text-[#b8a0c0]'
+  const lastClass = car.lastColor === 'sb'
+    ? 'text-fastest'
+    : isPit ? 'text-pit' : 'text-fg0'
 
   return (
     <div
       className={cn(
-        'lb-row grid items-center px-2 py-1.5 border-b border-[hsl(var(--background))]',
-        isClassBorder && 'border-t border-t-surface3',
-        isPit ? 'bg-[hsl(var(--pit-bg))]' : 'bg-transparent',
+        'lb-row grid items-stretch h-[44px] mb-[3px] transition-colors',
+        isClassBorder && 'mt-2',
       )}
-      style={{ gridTemplateColumns: GRID_COLS }}
+      style={{
+        gridTemplateColumns: GRID_COLS,
+        background: isLeader
+          ? 'linear-gradient(90deg, rgba(255,46,46,0.10) 0%, hsl(var(--bg-2)) 60%)'
+          : 'hsl(var(--bg-2))',
+        border: isLeader ? '1px solid hsl(var(--hypercar))' : '1px solid hsl(var(--line-1))',
+      }}
     >
-      {/* POS */}
-      <span className="text-[11px] text-muted-foreground">{car.pos}</span>
+      {/* POS — chevron with class color */}
+      <div
+        className="disp flex items-center justify-center font-black text-white text-[18px]"
+        style={{
+          background: CLS_COLOR[car.carClass] ?? 'hsl(var(--bg-3))',
+          clipPath: 'polygon(0 0, 100% 0, calc(100% - 11px) 100%, 0 100%)',
+        }}
+      >
+        <span className="text-[10px] opacity-70 mr-0.5">P</span>
+        {car.pos}
+      </div>
 
-      {/* CLS pos */}
-      <span className={cn('text-[10px] font-semibold', CLS_POS_COLOR[car.carClass])}>
-        {car.clsPos}
-      </span>
-
-      {/* CLASS badge */}
-      <span><ClassBadge carClass={car.carClass} /></span>
+      {/* CLASS + class pos */}
+      <div className="flex items-center pl-2 gap-1.5 min-w-0">
+        <ClassBadge carClass={car.carClass} />
+        <span className="mono text-[9px] text-fg3 shrink-0">P{car.clsPos}</span>
+      </div>
 
       {/* Car number */}
-      <span className="text-[14px] font-semibold text-foreground">{car.carNum}</span>
+      <div className="disp flex items-center justify-center font-black text-fg0 text-[24px]">
+        {car.carNum}
+      </div>
 
       {/* Team / Driver */}
-      <div className="min-w-0 overflow-hidden">
-        <div className="text-[9px] text-muted-foreground truncate">{car.team}</div>
-        <div className="text-[10px] text-foreground truncate">{car.drivers}</div>
+      <div className="flex flex-col justify-center pr-2.5 min-w-0">
+        <div className="text-[13px] font-semibold text-fg0 truncate" style={{ letterSpacing: 0.2 }}>
+          {car.team}
+        </div>
+        <div className="mono text-[10px] text-fg3 truncate">{car.drivers}</div>
       </div>
 
-      {/* Tire */}
-      <div className="flex justify-center">
-        <TireBadge tire={car.tire} />
+      {/* Gap */}
+      <div className="flex items-center justify-end pr-2.5">
+        <div className="text-right">
+          <div className={cn('mono font-bold text-[14px]', gapClass)}>{car.gap}</div>
+          <div className="disp text-[8px] text-fg4 tracking-[1px] uppercase">
+            {gapIsLead ? 'CLASS' : 'TO LEADER'}
+          </div>
+        </div>
       </div>
 
-      {/* Laps */}
-      <span className="text-[10px] text-muted-foreground text-right block tabular">{car.laps}</span>
+      {/* Last / Best */}
+      <div className="flex flex-col items-end justify-center pr-2.5">
+        <div className={cn('mono font-bold text-[14px]', lastClass)}>
+          {isPit ? 'PIT' : car.lastLap}
+        </div>
+        <div className="disp text-[8px] text-fg4 tracking-[1px] uppercase">
+          LAST · BEST {car.bestLap}
+        </div>
+      </div>
 
-      {/* Last Lap */}
-      <span className={cn('text-[10px] text-right block tabular', lastClass)}>
-        {isPit ? '—' : car.lastLap}
-      </span>
-
-      {/* Best Lap */}
-      <span className={cn('text-[10px] text-right block tabular', bestClass)}>
-        {car.bestLap}
-      </span>
-
-      {/* GAP */}
-      <span className={cn('text-[10px] text-right block tabular', gapClass)}>
-        {car.gap}
-      </span>
-
-      {/* INT */}
-      <span className={cn('text-[10px] text-right block tabular', intClass)}>
-        {car.interval}
-      </span>
+      {/* Tire / stint */}
+      <div className="flex items-center justify-center pr-2.5">
+        <TireBadge tire={car.tire} laps={car.laps} />
+      </div>
 
       {/* Status */}
-      <div className="flex justify-center">
+      <div className="flex items-center justify-center">
         <StatusBadge status={car.status} />
       </div>
     </div>

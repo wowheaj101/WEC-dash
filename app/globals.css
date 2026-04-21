@@ -1,76 +1,98 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════════════════
-   PIT WALL DESIGN SYSTEM — CSS Custom Properties
+   PIT WALL v3.0 — BROADCAST OVERLAY
+   Motorsport TV graphics · Deep-black surfaces · Hypercar red accent
    ═══════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
-    /* ── Base surfaces ── */
-    --background:   0 0% 5%;        /* #0d0d0d */
-    --foreground:   0 0% 80%;       /* #cccccc */
+    /* ── Surfaces (deep blacks with slight blue tint) ── */
+    --bg-0: 222 16% 3%;           /* #07080a — page */
+    --bg-1: 222 14% 6%;           /* #0d0f12 — panels */
+    --bg-2: 222 14% 9%;           /* #14171c — cards */
+    --bg-3: 222 14% 13%;          /* #1c2028 — hover */
+    --bg-4: 222 14% 18%;          /* #262b35 — heavy borders */
 
-    /* ── Card / surface elevation ── */
-    --card:            0 0% 8%;     /* #141414 */
-    --card-foreground: 0 0% 80%;
-    --surface1:        0 0% 7%;     /* #111111 – lowest elevation */
-    --surface2:        0 0% 10%;    /* #1a1a1a – mid elevation */
-    --surface3:        0 0% 13%;    /* #222222 – raised */
+    /* ── Line weights ── */
+    --line-1: 222 14% 14%;        /* #1f242c */
+    --line-2: 222 14% 19%;        /* #2a303a */
+    --line-3: 222 14% 27%;        /* #3a4150 */
 
-    /* ── Muted ── */
-    --muted:            0 0% 10%;
-    --muted-foreground: 0 0% 40%;
+    /* ── Foreground (typography) ── */
+    --fg-0: 220 8% 96%;           /* #f5f5f7 — headlines */
+    --fg-1: 220 8% 87%;           /* #d9dce2 — body */
+    --fg-2: 220 7% 57%;           /* #8a9099 — secondary */
+    --fg-3: 220 7% 39%;           /* #5a606a — muted */
+    --fg-4: 220 7% 25%;           /* #3a4048 — faint */
 
-    /* ── Accent (WEC orange – replay / highlight) ── */
-    --accent:            35 100% 50%;
+    /* ── Mapping to shadcn/Tailwind token names ── */
+    --background: var(--bg-0);
+    --foreground: var(--fg-1);
+    --card: var(--bg-1);
+    --card-foreground: var(--fg-1);
+    --surface1: var(--bg-1);
+    --surface2: var(--bg-2);
+    --surface3: var(--bg-3);
+    --muted: var(--bg-2);
+    --muted-foreground: var(--fg-2);
+    --border: var(--line-1);
+    --input: var(--bg-2);
+    --ring: var(--line-2);
+    --radius: 0.125rem;           /* hard broadcast edges */
+
+    /* ─────────────────────────────────
+       Racing class colors (Broadcast palette)
+    ───────────────────────────────── */
+    --hypercar: 0 100% 59%;       /* #ff2e2e */
+    --lmp2:    214 100% 62%;      /* #3a8cff */
+    --lmgt3:   140 66% 49%;       /* #27d36b */
+    --fastest: 276 100% 71%;      /* #c26bff */
+
+    /* ─────────────────────────────────
+       Primary accent = Hypercar red (broadcast accent)
+    ───────────────────────────────── */
+    --accent: var(--hypercar);
     --accent-foreground: 0 0% 100%;
 
-    /* ── Chrome ── */
-    --border: 0 0% 14%;             /* #242424 */
-    --input:  0 0% 9%;
-    --ring:   0 0% 14%;
+    /* ─────────────────────────────────
+       Status colors
+    ───────────────────────────────── */
+    --live:         150 100% 45%;   /* #00e673 */
+    --live-bg:      155 67% 10%;    /* #0a2718 */
+    --live-border:  150 100% 28%;
 
-    /* ── Border radius ── */
-    --radius: 0.5rem;
+    --pit:           42 100% 50%;   /* #ffb400 */
+    --pit-bg:        40 100% 8%;    /* #2a1e00 */
+    --pit-border:    42 100% 28%;
+
+    --danger:         0 100% 62%;   /* #ff3a3a */
+    --danger-bg:      0 68% 10%;    /* #2a0a0a */
+    --danger-border:  0 100% 30%;
+
+    --warning:       45 100% 60%;   /* #ffc233 */
+    --warning-bg:    42 100% 9%;
+    --warning-border:45 100% 30%;
+
+    --info:         218 100% 65%;   /* #4d94ff */
+    --info-bg:      218 60% 12%;
+    --info-border:  218 100% 32%;
+
+    --purple: var(--fastest);
+    --purple-bg:    276 50% 12%;
+    --purple-border:276 60% 34%;
 
     /* ─────────────────────────────────
-       Racing class colors
+       Flag colors
     ───────────────────────────────── */
-    --hypercar: 0 94% 63%;          /* #ff4444 */
-    --lmp2:    220 100% 65%;        /* #4488ff */
-    --lmgt3:   130 65% 55%;         /* #44cc55 */
-    --fastest: 280 65% 65%;         /* #cc44ff */
-
-    /* ─────────────────────────────────
-       Semantic status colors
-    ───────────────────────────────── */
-    --live:         145 100% 40%;   /* #00cc55 */
-    --live-bg:      145 100% 10%;
-    --live-border:  145 100% 20%;
-
-    --pit:          35 100% 50%;    /* #ff9900 */
-    --pit-bg:       35 100% 8%;
-    --pit-border:   35 100% 25%;
-
-    --danger:       0 85% 55%;      /* #ff3333 */
-    --danger-bg:    0 85% 10%;
-    --danger-border:0 85% 25%;
-
-    --warning:      40 100% 52%;    /* #ffaa00 */
-    --warning-bg:   40 100% 8%;
-    --warning-border: 40 100% 22%;
-
-    --info:         220 100% 62%;   /* #4488ff */
-    --info-bg:      220 100% 10%;
-    --info-border:  220 100% 22%;
-
-    --purple:       280 65% 65%;    /* #cc44ff */
-    --purple-bg:    280 65% 10%;
-    --purple-border:280 65% 25%;
+    --flag-green:  150 100% 36%;    /* #00b856 */
+    --flag-yellow:  45 100% 48%;    /* #f5b400 */
+    --flag-red:      4 78% 54%;     /* #e63a2e */
+    --flag-sc:      32 100% 50%;    /* #ff8a00 */
   }
 }
 
@@ -85,13 +107,20 @@
 }
 
 html, body {
-  background-color: hsl(var(--background));
-  color:            hsl(var(--foreground));
-  font-family:      'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, 'Courier New', monospace;
+  background-color: hsl(var(--bg-0));
+  color:            hsl(var(--fg-1));
+  font-family:      'Bai Jamjuree', ui-sans-serif, system-ui, sans-serif;
   font-size:        12px;
   line-height:      1.4;
   -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01";
 }
+
+/* Font utility classes (matches design-spec naming) */
+.disp { font-family: 'Bai Jamjuree', 'Barlow Condensed', ui-sans-serif, system-ui, sans-serif; }
+.cond { font-family: 'Barlow Condensed', 'Bai Jamjuree', sans-serif; }
+.mono { font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.tabular { font-variant-numeric: tabular-nums; }
 
 /* ═══════════════════════════════════════════════════════════════════
    Animations
@@ -101,9 +130,14 @@ html, body {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.15; }
 }
-
 .dot-blink      { animation: blink 1.2s ease-in-out infinite; }
 .dot-blink-slow { animation: blink 2.4s ease-in-out infinite; }
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+.pulse { animation: pulse-soft 1.4s ease-in-out infinite; }
 
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(-4px); }
@@ -115,66 +149,117 @@ html, body {
   to   { opacity: 1; transform: translateX(0); }
 }
 
+@keyframes ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.ticker-track { animation: ticker 60s linear infinite; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Chevron / clip-path utilities (angled TV edges)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.clip-chev-r    { clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%); }
+.clip-chev-l    { clip-path: polygon(12px 0, 100% 0, 100% 100%, 0 100%); }
+.clip-chev-both { clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%); }
+.clip-chev-sm   { clip-path: polygon(0 0, 100% 0, calc(100% - 7px) 100%, 0 100%); }
+.clip-chev-hero { clip-path: polygon(0 0, 100% 0, calc(100% - 36px) 100%, 0 100%); }
+
 /* ═══════════════════════════════════════════════════════════════════
    Component utilities
    ═══════════════════════════════════════════════════════════════════ */
 
+/* Panel — broadcast-flat dark card, sharp corners */
+.panel {
+  background:  hsl(var(--bg-1));
+  border:      1px solid hsl(var(--line-1));
+}
+
+/* Panel header bar (section titles inside panels) */
+.panel-header {
+  padding:       10px 14px;
+  border-bottom: 1px solid hsl(var(--line-1));
+  background:    hsl(var(--bg-2));
+  display:       flex;
+  align-items:   center;
+  gap:           10px;
+  font-family:   'Bai Jamjuree', sans-serif;
+  font-weight:   700;
+  font-size:     11px;
+  letter-spacing:1.8px;
+  color:         hsl(var(--fg-0));
+  text-transform:uppercase;
+}
+
+/* Section label (9-11px spaced uppercase) */
+.section-label {
+  font-family:   'Bai Jamjuree', sans-serif;
+  font-size:     10px;
+  color:         hsl(var(--fg-3));
+  text-transform:uppercase;
+  letter-spacing:1.5px;
+  font-weight:   700;
+}
+
+/* Chevron tag (angled pill) */
+.chev-tag {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           6px;
+  padding:       3px 14px 3px 10px;
+  font-family:   'Bai Jamjuree', sans-serif;
+  font-weight:   700;
+  font-size:     11px;
+  letter-spacing:1.2px;
+  clip-path:     polygon(0 0, 100% 0, calc(100% - 7px) 100%, 0 100%);
+  text-transform:uppercase;
+  line-height:   1.4;
+}
+
+/* Ghost broadcast button */
+.btn-ghost {
+  background:    transparent;
+  color:         hsl(var(--fg-2));
+  border:        1px solid hsl(var(--line-2));
+  padding:       5px 12px;
+  font-family:   'Bai Jamjuree', sans-serif;
+  font-weight:   600;
+  font-size:     11px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  cursor:        pointer;
+  transition:    all 120ms;
+}
+.btn-ghost:hover { background: hsl(var(--bg-3)); color: hsl(var(--fg-0)); border-color: hsl(var(--line-3)); }
+.btn-ghost.on    { background: hsl(var(--fg-0)); color: hsl(var(--bg-0)); border-color: hsl(var(--fg-0)); }
+
+/* Live glow (kept for compatibility) */
+.glow-live   { box-shadow: 0 0 0 1px hsl(var(--live-border)), 0 0 16px hsl(var(--live) / 0.14); }
+.glow-danger { box-shadow: 0 0 0 1px hsl(var(--danger-border)), 0 0 16px hsl(var(--danger) / 0.14); }
+
 /* Leaderboard row hover */
-.lb-row {
-  transition: background-color 0.12s ease;
-}
-.lb-row:hover {
-  background-color: hsl(var(--surface2)) !important;
-}
+.lb-row { transition: background-color 0.12s ease; }
+.lb-row:hover { background-color: hsl(var(--bg-3)) !important; }
 
 /* Glass surface */
 .glass {
-  background:   hsl(var(--card) / 0.7);
+  background:   hsl(var(--bg-1) / 0.78);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 0.5px solid hsl(var(--border));
-}
-
-/* Subtle inner glow for live indicator */
-.glow-live {
-  box-shadow: 0 0 0 1px hsl(var(--live-border)), 0 0 12px hsl(var(--live) / 0.15);
-}
-.glow-danger {
-  box-shadow: 0 0 0 1px hsl(var(--danger-border)), 0 0 12px hsl(var(--danger) / 0.15);
-}
-
-/* Panel — standard dark card */
-.panel {
-  background:    hsl(var(--card));
-  border:        0.5px solid hsl(var(--border));
-  border-radius: var(--radius);
-}
-
-/* Section header label */
-.section-label {
-  font-size:      9px;
-  color:          hsl(var(--muted-foreground));
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-/* Tabular numbers */
-.tabular {
-  font-variant-numeric: tabular-nums;
+  border: 1px solid hsl(var(--line-1));
 }
 
 /* ═══════════════════════════════════════════════════════════════════
    Scrollbar
    ═══════════════════════════════════════════════════════════════════ */
 
-::-webkit-scrollbar          { height: 4px; width: 4px; }
-::-webkit-scrollbar-track    { background: hsl(var(--background)); }
-::-webkit-scrollbar-thumb    { background: hsl(var(--surface3)); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: hsl(0 0% 28%); }
+::-webkit-scrollbar          { height: 6px; width: 6px; }
+::-webkit-scrollbar-track    { background: transparent; }
+::-webkit-scrollbar-thumb    { background: hsl(var(--line-3)); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--fg-3)); }
 
 /* ═══════════════════════════════════════════════════════════════════
    Radix UI / shadcn overrides
    ═══════════════════════════════════════════════════════════════════ */
 
-/* Tabs */
 [data-radix-collection-item] { cursor: pointer; }

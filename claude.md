@@ -94,21 +94,26 @@ The replay tab shows `ReplayControls` inside the `dashboard` tab too when `isRep
 
 ### Design system
 
-The UI uses **Pit Wall Dark** — a shadcn/ui–based design system. See `DESIGN_SYSTEM.md` for the full reference.
+The UI uses **Pit Wall v3.0 — Broadcast Overlay** — a shadcn/ui–based design system. See `DESIGN_SYSTEM.md` for the full reference.
 
 **Guiding principles:**
 - All colors are CSS Custom Properties (HSL) defined in `app/globals.css`. Reference them as `hsl(var(--token))` in Tailwind arbitrary values or via mapped Tailwind tokens in `tailwind.config.ts`.
 - Use `cn()` from `app/lib/utils.ts` for all className composition.
-- Prefer Tailwind classes over inline styles. Inline styles are only acceptable for dynamic values that cannot be expressed as Tailwind utilities (e.g., `gridTemplateColumns`).
+- Prefer Tailwind classes over inline styles. Inline styles are only acceptable for dynamic values that cannot be expressed as Tailwind utilities (e.g., `gridTemplateColumns`, dynamic width %).
 - Use `app/components/ui/` primitives (Badge, Button, Card, Tabs, ScrollArea, Separator, Slider) before writing custom equivalents.
 
-**Key design tokens:**
-- Surfaces: `bg-background` → `bg-surface1` → `bg-card` → `bg-surface2` → `bg-surface3` (elevation scale)
-- Racing classes: `--hypercar` (red) · `--lmp2` (blue) · `--lmgt3` (green) · `--fastest` (purple)
-- Status colors each have three variants: `--{name}` (text), `--{name}-bg`, `--{name}-border`
-- Global utility classes: `.panel` (dark card), `.section-label` (9px uppercase label), `.tabular` (tabular-nums), `.glow-live` / `.glow-danger`
+**Key design tokens (v3.0):**
+- Surfaces: `bg-bg0` (page) → `bg-bg1` (panel) → `bg-bg2` (card) → `bg-bg3` (hover) → `bg-bg4` (heavy). Legacy `bg-surface1/2/3` are aliased to `bg-bg1/2/3`.
+- Foreground scale: `text-fg0` (headlines) → `text-fg1` (body) → `text-fg2` (secondary) → `text-fg3` (muted) → `text-fg4` (faint).
+- Line weights: `border-line1` / `line2` / `line3`.
+- Racing classes: `--hypercar` (red, **also mapped to `--accent`**) · `--lmp2` (blue) · `--lmgt3` (green) · `--fastest` (purple).
+- Status colors each have three variants: `--{name}` (text), `--{name}-bg`, `--{name}-border`.
+- Typography: 3-font stack — `.disp` (Bai Jamjuree), `.cond` (Barlow Condensed), `.mono` (JetBrains Mono, tabular-nums). Use `.disp` for broadcast UI text, `.mono` for all numbers.
+- Chevron clip-path utilities: `.clip-chev-r/-l/-both/-sm/-hero` and `.chev-tag` for angled TV-graphic edges (hero ribbon is `clip-chev-hero` 36px).
+- Global utility classes: `.panel` (dark card), `.panel-header` (section title bar), `.section-label` (10px uppercase), `.btn-ghost`, `.ticker-track` (60s linear scroll), `.glow-live` / `.glow-danger`, `.pulse`.
 - Gap/interval display is always class-relative, never overall.
 - `TrackMap` uses `sectorNum` from `Car` (mapped from `RankItem.sectorNumber`) to place car dots near each circuit's `sectorPoints[sectorNum-1]`. Cars in the same sector are spread in a 3-wide grid. Pit cars cluster near S/F. Full GPS-based interpolation is not yet implemented.
+- Bottom-of-page `<Ticker>` component (red chevron "RACE CONTROL" + scrolling mono text) is always rendered outside the `<Tabs>`.
 
 ---
 

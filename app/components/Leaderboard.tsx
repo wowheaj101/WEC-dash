@@ -1,58 +1,71 @@
 'use client'
 
-import type { Car } from '@/app/types/race'
-import LeaderboardRow, { GRID_COLS } from './LeaderboardRow'
+import { useState } from 'react'
+import type { Car, CarClass } from '@/app/types/race'
+import LeaderboardRow from './LeaderboardRow'
+import { cn } from '@/app/lib/utils'
 
-const HEADERS: { label: string; align: 'left' | 'center' | 'right' }[] = [
-  { label: 'POS',          align: 'left'   },
-  { label: 'CLS',          align: 'left'   },
-  { label: 'CLASS',        align: 'left'   },
-  { label: '#',            align: 'left'   },
-  { label: 'TEAM · DRIVER', align: 'left'  },
-  { label: 'TIRE',         align: 'center' },
-  { label: 'LAPS',         align: 'right'  },
-  { label: 'LAST LAP',     align: 'right'  },
-  { label: 'BEST LAP',     align: 'right'  },
-  { label: 'GAP',          align: 'right'  },
-  { label: 'INT',          align: 'right'  },
-  { label: 'STATUS',       align: 'center' },
-]
+type Filter = 'ALL' | 'HC' | 'P2' | 'GT3'
+const FILTERS: Filter[] = ['ALL', 'HC', 'P2', 'GT3']
+
+const FILTER_MATCH: Record<Exclude<Filter, 'ALL'>, CarClass> = {
+  HC:  'HYPERCAR',
+  P2:  'LMP2',
+  GT3: 'LMGT3',
+}
 
 export default function Leaderboard({ cars }: { cars: Car[] }) {
+  const [filter, setFilter] = useState<Filter>('ALL')
+
+  const filtered = filter === 'ALL'
+    ? cars
+    : cars.filter(c => c.carClass === FILTER_MATCH[filter])
+
   const classBorderNums = new Set<number>()
-  cars.forEach((car, i) => {
-    if (i > 0 && car.carClass !== cars[i - 1].carClass) {
+  filtered.forEach((car, i) => {
+    if (i > 0 && car.carClass !== filtered[i - 1].carClass) {
       classBorderNums.add(car.carNum)
     }
   })
 
+  const leaderLap = cars.length > 0 ? cars[0].laps : 0
+
   return (
-    <div className="overflow-x-auto">
-      <div className="panel rounded-lg overflow-hidden min-w-[640px]">
-        {/* Header row */}
-        <div
-          className="grid items-center bg-surface1 border-b border-border px-2 py-1.5"
-          style={{ gridTemplateColumns: GRID_COLS }}
-        >
-          {HEADERS.map(h => (
-            <span
-              key={h.label}
-              className="section-label block"
-              style={{ textAlign: h.align }}
+    <div className="panel flex flex-col min-h-0 overflow-hidden">
+      <div className="panel-header">
+        <span>
+          CLASSIFICATION
+          <span className="text-fg3 font-normal tracking-[1px] ml-1.5">· LAP {leaderLap}</span>
+        </span>
+        <div className="ml-auto flex gap-1">
+          {FILTERS.map(t => (
+            <button
+              key={t}
+              onClick={() => setFilter(t)}
+              className={cn('btn-ghost', filter === t && 'on')}
+              style={{ padding: '3px 10px' }}
             >
-              {h.label}
-            </span>
+              {t}
+            </button>
           ))}
         </div>
+      </div>
 
-        {/* Data rows */}
-        {cars.map(car => (
-          <LeaderboardRow
-            key={car.carNum}
-            car={car}
-            isClassBorder={classBorderNums.has(car.carNum)}
-          />
-        ))}
+      <div className="overflow-x-auto flex-1 min-h-0">
+        <div className="flex flex-col p-2 min-w-[820px]">
+          {filtered.map(car => (
+            <LeaderboardRow
+              key={car.carNum}
+              car={car}
+              isClassBorder={classBorderNums.has(car.carNum)}
+            />
+          ))}
+          {filtered.length === 0 && (
+            <div className="py-10 text-center text-[11px] text-fg3">
+              해당 클래스 데이터가 없습니다
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

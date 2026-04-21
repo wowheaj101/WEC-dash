@@ -5,9 +5,9 @@ import type { CarStint, Car } from '@/app/types/race'
 import TireBadge from './TireBadge'
 
 const CLS_TEXT: Record<string, string> = {
-  HYPERCAR: 'text-[hsl(var(--hypercar))]',
-  LMP2:     'text-[hsl(var(--lmp2))]',
-  LMGT3:    'text-[hsl(var(--lmgt3))]',
+  HYPERCAR: 'text-hypercar',
+  LMP2:     'text-lmp2',
+  LMGT3:    'text-lmgt3',
 }
 
 interface Props {
@@ -18,36 +18,37 @@ interface Props {
 
 export default function StintOverview({ carStints, cars, leaderLap }: Props) {
   return (
-    <div className="panel overflow-hidden">
-      <div className="px-3 py-2 border-b border-border section-label">
-        스틴트 현황
+    <div className="panel flex flex-col overflow-hidden min-h-0">
+      <div className="panel-header">STINT OVERVIEW</div>
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        {carStints.map(cs => {
+          const lastStint = cs.stints[cs.stints.length - 1]
+          const pitCount  = cs.stints.length - 1
+          const car       = cars.find(c => c.carNum === cs.carNum)
+          const stintLaps = lastStint.endLap !== null
+            ? lastStint.endLap - lastStint.startLap + 1
+            : leaderLap - lastStint.startLap + 1
+
+          return (
+            <div
+              key={cs.carNum}
+              className={cn(
+                'flex items-center gap-2 px-3 py-2 border-b border-line1',
+                car?.status === 'PIT' && 'bg-[hsl(var(--pit-bg))]',
+              )}
+            >
+              <span className={cn('disp text-[14px] font-bold w-7 text-right', CLS_TEXT[cs.carClass])}>
+                {cs.carNum}
+              </span>
+              <TireBadge tire={lastStint.tire} laps={stintLaps} />
+              <span className="mono text-[10px] text-fg3 ml-auto">PIT×{pitCount}</span>
+            </div>
+          )
+        })}
+        {carStints.length === 0 && (
+          <div className="py-6 text-center text-[11px] text-fg3">NO STINT DATA</div>
+        )}
       </div>
-
-      {carStints.map(cs => {
-        const lastStint = cs.stints[cs.stints.length - 1]
-        const pitCount  = cs.stints.length - 1
-        const car       = cars.find(c => c.carNum === cs.carNum)
-        const stintLaps = lastStint.endLap !== null
-          ? lastStint.endLap - lastStint.startLap + 1
-          : leaderLap - lastStint.startLap + 1
-
-        return (
-          <div
-            key={cs.carNum}
-            className={cn(
-              'flex items-center gap-2 px-3 py-1.5 border-b border-[hsl(var(--background))]',
-              car?.status === 'PIT' ? 'bg-[hsl(var(--pit-bg))]' : 'bg-transparent'
-            )}
-          >
-            <span className={cn('text-[11px] font-semibold w-6 text-right', CLS_TEXT[cs.carClass])}>
-              {cs.carNum}
-            </span>
-            <TireBadge tire={lastStint.tire} />
-            <span className="text-[9px] text-muted-foreground">+{stintLaps}L</span>
-            <span className="text-[9px] text-[hsl(0_0%_25%)] ml-auto">Pit×{pitCount}</span>
-          </div>
-        )
-      })}
     </div>
   )
 }

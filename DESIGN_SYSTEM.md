@@ -1,6 +1,6 @@
-# Pit Wall — Design System
+# Pit Wall v3.0 — Broadcast Overlay
 
-WEC Live Timing Dashboard의 디자인 시스템 문서입니다.
+WEC Live Timing Dashboard의 디자인 시스템 문서.
 
 ---
 
@@ -11,114 +11,165 @@ WEC Live Timing Dashboard의 디자인 시스템 문서입니다.
 | 프레임워크 | Next.js 14 App Router |
 | 스타일 엔진 | Tailwind CSS v3 + CSS Custom Properties |
 | 컴포넌트 기반 | shadcn/ui (Radix UI primitives + CVA) |
-| 타이포그래피 | JetBrains Mono (monospace only) |
-| 기본 테마 | Dark-only (단일 컬러 테마) |
-| 디자인 철학 | **Pit Wall** — 텔레메트리 터미널 미학, 레이싱 데이터의 밀도 유지 |
+| 타이포그래피 | **3-font stack**: Bai Jamjuree (display) · Barlow Condensed (cond) · JetBrains Mono (mono) |
+| 기본 테마 | Dark-only |
+| 디자인 철학 | **Broadcast Overlay** — 모터스포츠 TV 그래픽 미학. 샤프한 에지, chevron clip-path, 하이퍼카 레드 액센트, 깊은 블랙 서피스 |
+
+**v2.0 → v3.0 주요 변경:**
+- 폰트가 JetBrains Mono 단일 → 3-스택으로 확장 (`.disp`, `.cond`, `.mono`)
+- 토큰 네이밍: `--surface1/2/3` → `--bg-0..4` + `--fg-0..4` + `--line-1..3`
+- Hypercar 레드를 primary `accent`로 승격
+- Chevron clip-path 유틸리티 추가 (`.clip-chev-r/-l/-both/-sm/-hero`, `.chev-tag`)
+- `.panel-header`, `.btn-ghost`, `.ticker-track` 유틸 도입
+- 탭 UI가 박스형 → 언더라인 브로드캐스트 스타일
 
 ---
 
 ## 2. 컬러 시스템
 
-모든 색상은 CSS Custom Properties (HSL)로 정의되며, Tailwind 유틸리티에서 `hsl(var(--token))` 형식으로 참조됩니다.
+모든 색상은 CSS Custom Properties (HSL)로 정의되며, `hsl(var(--token))` 또는 Tailwind 매핑 토큰으로 참조됩니다.
 
-### 2.1 기본 서피스 (Surface Elevation)
+### 2.1 서피스 스케일 (Surface Elevation)
 
-| 토큰 | HSL 값 | Hex 근사 | 용도 |
-|---|---|---|---|
-| `--background` | `0 0% 5%` | `#0d0d0d` | 페이지 배경 |
-| `--surface1` | `0 0% 7%` | `#111111` | 가장 낮은 카드 레벨 |
-| `--card` | `0 0% 8%` | `#141414` | 기본 카드 배경 |
-| `--surface2` | `0 0% 10%` | `#1a1a1a` | 중간 레벨 (hover bg) |
-| `--surface3` | `0 0% 13%` | `#222222` | 높은 레벨 (active bg) |
-| `--border` | `0 0% 14%` | `#242424` | 경계선 |
+`app/globals.css` 에서 정의.
 
-### 2.2 텍스트
+| 토큰 | HSL 값 | Hex 근사 | Tailwind 클래스 | 용도 |
+|---|---|---|---|---|
+| `--bg-0` | `222 16% 3%`  | `#07080a` | `bg-bg0`  | 페이지 배경 |
+| `--bg-1` | `222 14% 6%`  | `#0d0f12` | `bg-bg1` / `bg-surface1` / `bg-card` | 패널 배경 |
+| `--bg-2` | `222 14% 9%`  | `#14171c` | `bg-bg2` / `bg-surface2` | 패널 헤더, 카드 |
+| `--bg-3` | `222 14% 13%` | `#1c2028` | `bg-bg3` / `bg-surface3` | Hover / Active |
+| `--bg-4` | `222 14% 18%` | `#262b35` | `bg-bg4` | Heavy surface |
 
-| 토큰 | HSL 값 | Hex 근사 | 용도 |
-|---|---|---|---|
-| `--foreground` | `0 0% 80%` | `#cccccc` | 기본 텍스트 |
-| `--muted-foreground` | `0 0% 40%` | `#666666` | 서브 레이블, 메타 정보 |
+레거시 토큰(`surface1/2/3`)은 `bg-1/2/3`의 별칭으로 매핑되어 하위 호환됩니다.
 
-### 2.3 레이싱 클래스 색상
+### 2.2 텍스트 스케일
+
+| 토큰 | HSL 값 | Hex | Tailwind | 용도 |
+|---|---|---|---|---|
+| `--fg-0` | `220 8% 96%` | `#f5f5f7` | `text-fg0` | 헤드라인, 차 번호 |
+| `--fg-1` | `220 8% 87%` | `#d9dce2` | `text-fg1` | 본문 (기본) |
+| `--fg-2` | `220 7% 57%` | `#8a9099` | `text-fg2` | 서브 텍스트 |
+| `--fg-3` | `220 7% 39%` | `#5a606a` | `text-fg3` | 레이블 / muted |
+| `--fg-4` | `220 7% 25%` | `#3a4048` | `text-fg4` | 극약한 텍스트 |
+
+### 2.3 라인 웨이트
+
+| 토큰 | Tailwind | 용도 |
+|---|---|---|
+| `--line-1` | `border-line1` | 기본 1px 경계선 |
+| `--line-2` | `border-line2` | 그룹 구분, 카드 보더 |
+| `--line-3` | `border-line3` | 강조 섹션 구분 |
+
+### 2.4 레이싱 클래스 색상
 
 | 토큰 | HSL 값 | Hex | 클래스 |
 |---|---|---|---|
-| `--hypercar` | `0 94% 63%` | `#ff4444` | Hypercar |
-| `--lmp2` | `220 100% 65%` | `#4488ff` | LMP2 |
-| `--lmgt3` | `130 65% 55%` | `#44cc55` | LMGT3 |
-| `--fastest` | `280 65% 65%` | `#cc44ff` | Fastest Lap |
+| `--hypercar` | `0 100% 59%` | `#ff2e2e` | Hypercar (primary accent) |
+| `--lmp2` | `214 100% 62%` | `#3a8cff` | LMP2 |
+| `--lmgt3` | `140 66% 49%` | `#27d36b` | LMGT3 |
+| `--fastest` | `276 100% 71%` | `#c26bff` | Fastest Lap / purple |
 
-### 2.4 시맨틱 상태 색상
+**하이퍼카 레드는 `--accent`로 매핑되어 Tailwind의 `bg-accent`, `text-accent`, `border-accent`를 통해 참조 가능 — 브로드캐스트 히어로 리본, LIVE 인디케이터, 티커 바의 주 컬러입니다.**
 
-각 시맨틱 색상은 세 가지 변형을 갖습니다: `--{name}` (text), `--{name}-bg` (background), `--{name}-border` (border).
+### 2.5 시맨틱 상태 색상
 
-| 이름 | 용도 | Text HSL |
+각 상태 색상은 세 변형(`--{name}`, `--{name}-bg`, `--{name}-border`)을 가집니다.
+
+| 이름 | Tailwind | 용도 |
 |---|---|---|
-| `live` | LIVE 상태, GREEN FLAG, RUN | `145 100% 40%` |
-| `pit` | 피트인·아웃, 리플레이 강조, 경고 | `35 100% 50%` |
-| `danger` | 에러, STOP 상태, RED FLAG, 사고 | `0 85% 55%` |
-| `warning` | 연결 중, OFF 상태, 재연결 | `40 100% 52%` |
-| `info` | OUT 상태, 드라이버 교체 | `220 100% 62%` |
-| `purple` | Fastest Lap 메시지, OUT | `280 65% 65%` |
+| `live` | `text-live`, `bg-live` | LIVE, RUN, GREEN 플래그 |
+| `pit` | `text-pit`, `bg-pit` | 피트 인·아웃, 리플레이 강조 |
+| `danger` | `text-danger`, `bg-danger` | STOP, RED 플래그, 에러 |
+| `warning` | `text-warning`, `bg-warning` | CONNECTING, OFF, YELLOW |
+| `info` | `text-info`, `bg-info` | OUT, driver_change |
 
-### 2.5 타이어 색상 (하드코딩)
+### 2.6 플래그 색상
 
-| 타이어 | 배경 | 텍스트 | Tailwind 클래스 |
-|---|---|---|---|
-| S (소프트) | `bg-yellow-400` | `text-black` | — |
-| M (미디엄) | `bg-white` | `text-black` | — |
-| H (하드) | `bg-red-500` | `text-white` | — |
-| W (웻) | `bg-blue-600` | `text-white` | — |
-| I (인터) | `bg-emerald-600` | `text-white` | — |
+| 토큰 | Tailwind | 플래그 |
+|---|---|---|
+| `--flag-green` | `bg-flagGreen` | Green |
+| `--flag-yellow` | `bg-flagYellow` | Yellow |
+| `--flag-red` | `bg-flagRed` | Red |
+| `--flag-sc` | `bg-flagSc` | Safety Car |
+
+### 2.7 타이어 색상 (하드코딩, `StintTimeline.tsx` 등)
+
+| 타이어 | 배경 | 텍스트 |
+|---|---|---|
+| S | `#ffd400` | `#000` |
+| M | `#f5f5f7` | `#000` |
+| H | `#ff2e2e` | `#fff` |
+| W | `#3a8cff` | `#fff` |
+| I | `#27d36b` | `#000` |
 
 ---
 
 ## 3. 타이포그래피
 
-| 항목 | 값 |
-|---|---|
-| 폰트 패밀리 | `JetBrains Mono`, `Fira Code`, `Cascadia Code`, `Consolas`, monospace |
-| 기본 크기 | `12px` |
-| 줄 높이 | `1.4` |
-| Smoothing | `antialiased` |
-| 숫자 정렬 | `font-variant-numeric: tabular-nums` (`.tabular` 유틸리티) |
+Pit Wall v3.0은 **3-font stack**을 사용합니다. `globals.css`에서 Google Fonts를 import합니다.
 
-### 크기 스케일
+| 클래스 | 폰트 | 용도 |
+|---|---|---|
+| `.disp` | Bai Jamjuree (400–700) | 디스플레이 텍스트, 히어로, 섹션 레이블, 탭, 버튼 |
+| `.cond` | Barlow Condensed (500–900) | 컨덴스드 대형 텍스트 (레이스 이름 등) |
+| `.mono` | JetBrains Mono (400–700) | 랩타임, 갭, 숫자, 티커 |
+| `.tabular` | (inherit) + `tabular-nums` | 표에서 숫자 정렬이 필요한 경우 |
+
+Body 기본 폰트는 `Bai Jamjuree` (`--font-ui`), `font-size: 12px`, `line-height: 1.4`, `antialiased`.
+
+### 3.1 크기 스케일
 
 | 용도 | 크기 | 예시 |
 |---|---|---|
-| 섹션 레이블 | `9px` | "TEAM · DRIVER", "스틴트 현황" |
+| 섹션 레이블 | `9–10px` | `.section-label`, panel-header 보조 |
 | 메타 텍스트 | `9–10px` | 타임스탬프, 서브 레이블 |
-| 본문 | `10–11px` | 레이더보드 값, 메시지 |
-| 헤더 타이틀 | `13px` | 레이스 이름 |
-| 통계 수치 | `18px` | StatsBar 숫자 |
-| 차 번호 | `14px` | 리더보드 #번호 |
+| 본문 | `11–13px` | 리더보드 셀, 메시지 |
+| 통계 수치 | `22–24px` | StatsBar 숫자, 드라이버 best |
+| 차 번호 | `16–24px` | 리더보드, 분석 표 |
+| 히어로 타이틀 | `26–28px` | Header 레이스 이름 |
 
 ---
 
 ## 4. 간격 & 레이아웃
 
-| 단계 | 크기 | 사용 |
-|---|---|---|
-| xs | `2px` (0.5) | 뱃지 내부 패딩 |
-| sm | `4px` (1) | 타이트 갭 |
-| md | `8px` (2) | 기본 갭 |
-| lg | `12px` (3) | 카드 패딩 |
-| xl | `16px` (4) | 큰 카드 패딩 |
+| 단계 | 크기 | Tailwind | 사용 |
+|---|---|---|---|
+| xs | `2px` | `p-0.5` | 뱃지 내부 |
+| sm | `4px` | `p-1` | 타이트 갭 |
+| md | `8px` | `p-2` | 기본 갭 |
+| lg | `12px` | `p-3` | 카드 패딩 |
+| xl | `16–20px` | `p-4 / p-5` | 큰 카드 / 히어로 |
 
-### 레이아웃
+### 레이아웃 그리드
 
-- **대시보드 그리드**: `1fr 280px` (메인 콘텐츠 + 우측 사이드바)
-- **StatsBar 그리드**: `repeat(4, 1fr)` 4등분
-- **Border radius**: `--radius: 0.5rem` (8px) — Tailwind `rounded-lg`
+- **대시보드 그리드**: `minmax(0,1fr) 420px` — 메인 콘텐츠 + 우측 사이드바(TrackMap + StintOverview + MessageFeed compact)
+- **StatsBar**: `repeat(4, 1fr)`
+- **리더보드 `GRID_COLS`**: `56px 96px 58px minmax(160px,1fr) 92px 104px 92px 60px` (POS · CLASS+clsPos · CAR · Team/Driver · GAP · Last/Best · Tire+laps · Status)
+- **Border radius**: `--radius: 0.125rem` (2px) — 브로드캐스트 하드 에지 유지
 
 ---
 
-## 5. 컴포넌트
+## 5. Chevron Clip-Path 유틸리티
 
-### 5.1 Badge
+브로드캐스트 TV 그래픽의 핵심인 각진 에지는 CSS `clip-path`로 구현됩니다.
 
-`app/components/ui/badge.tsx` — CVA(class-variance-authority) 기반.
+| 클래스 | 효과 |
+|---|---|
+| `.clip-chev-r` | 오른쪽 아래 모서리만 7–12px 각지게 자름 |
+| `.clip-chev-l` | 왼쪽 위 모서리만 자름 |
+| `.clip-chev-both` | 양쪽 모두 자름 |
+| `.clip-chev-sm` | 오른쪽, 7px |
+| `.clip-chev-hero` | 오른쪽, 36px (`Header` 레드 리본용) |
+| `.chev-tag` | 각진 pill 태그 — inline-flex, 11px, 1.2px tracking, uppercase |
+
+---
+
+## 6. 컴포넌트
+
+### 6.1 Badge (`app/components/ui/badge.tsx`)
+
+CVA variant 기반.
 
 ```tsx
 import { Badge } from '@/app/components/ui/badge'
@@ -131,193 +182,137 @@ import { Badge } from '@/app/components/ui/badge'
 
 | variant | 용도 |
 |---|---|
-| `default` | 기본 (회색) |
+| `default` | 기본 회색 |
 | `hypercar` / `lmp2` / `lmgt3` | 클래스 배지 |
-| `live` | RUN 상태, LIVE 연결 |
-| `pit` | PIT 상태 |
-| `danger` | STOP / ERROR / RED FLAG |
-| `warning` | OFF 상태 / CONNECTING |
-| `info` | OUT 상태 / driver_change |
-| `purple` | Fastest Lap |
-| `muted` | 서브 텍스트 배지 |
-| `outline` | 테두리만 |
+| `live`, `pit`, `danger`, `warning`, `info`, `purple` | 시맨틱 상태 |
+| `muted`, `outline` | 보조 |
 
-### 5.2 Button
+### 6.2 Button (`app/components/ui/button.tsx`)
 
-`app/components/ui/button.tsx`
+CVA variants: `default`, `ghost`, `active`, `live`, `accent`, `danger`. 사이즈: `sm` / `default` / `lg` / `icon`.
 
-```tsx
-import { Button } from '@/app/components/ui/button'
+브로드캐스트 UI는 대부분 `.btn-ghost` CSS 유틸을 직접 사용합니다 (`<button className="btn-ghost">RECONNECT</button>`).
 
-<Button variant="ghost" size="sm">닫기</Button>
-<Button variant="live">▶ 재생</Button>
-<Button variant="accent">⏸ 일시정지</Button>
-```
+### 6.3 Card / Tabs / ScrollArea / Slider / Separator
 
-| variant | 용도 |
+- **Tabs** (`app/components/ui/tabs.tsx`): Radix 기반 underline 스타일. `TabsList`는 40px 높이 + `border-b border-line2`. 활성 탭은 `border-b-2 border-accent` + `text-fg0`.
+- **Slider** (`app/components/ui/slider.tsx`): ReplayControls에서 타임라인으로 사용.
+- **ScrollArea** (`app/components/ui/scroll-area.tsx`): 커스텀 스크롤바 컨테이너.
+
+### 6.4 주요 합성 컴포넌트
+
+| 컴포넌트 | 설명 |
 |---|---|
-| `default` | 일반 버튼 |
-| `ghost` | 투명 배경 |
-| `active` | 활성 탭 상태 |
-| `live` | 재생 버튼 (녹색) |
-| `accent` | 일시정지 (주황) |
-| `danger` | 위험 액션 |
-
-| size | 높이 |
-|---|---|
-| `sm` | 24px |
-| `default` | 28px |
-| `lg` | 32px |
-| `icon` | 28×28px |
-
-### 5.3 Card
-
-```tsx
-import { Card, CardHeader, CardTitle, CardContent } from '@/app/components/ui/card'
-
-<Card>
-  <CardHeader>
-    <CardTitle>스틴트 현황</CardTitle>
-  </CardHeader>
-  <CardContent>...</CardContent>
-</Card>
-```
-
-### 5.4 Tabs
-
-`app/components/ui/tabs.tsx` — Radix UI TabsPrimitive 기반.
-
-```tsx
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs'
-
-<Tabs defaultValue="dashboard">
-  <TabsList>
-    <TabsTrigger value="dashboard">대시보드</TabsTrigger>
-  </TabsList>
-  <TabsContent value="dashboard">...</TabsContent>
-</Tabs>
-```
-
-### 5.5 ScrollArea
-
-```tsx
-import { ScrollArea } from '@/app/components/ui/scroll-area'
-
-<ScrollArea className="h-[400px]">
-  {/* 콘텐츠 */}
-</ScrollArea>
-```
-
-### 5.6 Slider
-
-```tsx
-import { Slider } from '@/app/components/ui/slider'
-
-<Slider
-  min={0} max={100}
-  value={[currentIdx]}
-  onValueChange={([v]) => seek(v)}
-/>
-```
+| `Header.tsx` | 브로드캐스트 히어로 리본 (80px, 하이퍼카 레드 `clip-chev-hero`) + 인라인 ELAPSED/FASTEST/TEMP + LIVE/PREVIOUS 뱃지 |
+| `FlagBanner.tsx` | chevron 플래그 태그 + 3개 섹터 카드 (좌측 컬러 바) |
+| `StatsBar.tsx` | 4-col 그리드, 22px mono 값, 상단 3px 컬러 보더 |
+| `LeaderboardRow.tsx` | POS 셀이 클래스 컬러 chevron 박스, 리더는 그라디언트 행 |
+| `MessageFeed.tsx` | 4px 컬러 좌측 바 + 타임스탬프 + DISP 타이틀 + 본문, 필터 칩 |
+| `Ticker.tsx` | 하단 36px 레드 티커 — black-on-red "RACE CONTROL" 태그 + 60s linear 스크롤 |
+| `StintOverview.tsx`, `StintTimeline.tsx`, `StintAnalysis.tsx`, `DriverAnalysis.tsx`, `ReplayBrowser.tsx`, `ReplayControls.tsx` | `panel` / `panel-header` 패턴, class-color 액센트 |
 
 ---
 
-## 6. CSS 유틸리티 클래스
+## 7. CSS 유틸리티 클래스
 
-`globals.css`에 정의된 재사용 클래스:
+`globals.css`에 정의:
 
 | 클래스 | 효과 |
 |---|---|
-| `.panel` | 기본 다크 카드 (card bg + border + radius) |
-| `.glass` | 글래스모피즘 카드 (배경 70% + blur) |
-| `.section-label` | 섹션 헤더 레이블 스타일 (9px, uppercase, muted) |
-| `.tabular` | `font-variant-numeric: tabular-nums` |
-| `.glow-live` | LIVE 상태 박스 쉐도우 (녹색 글로우) |
-| `.glow-danger` | 에러 상태 박스 쉐도우 (빨간 글로우) |
-| `.dot-blink` | 1.2s 깜박임 애니메이션 |
-| `.dot-blink-slow` | 2.4s 느린 깜박임 |
-| `.lb-row` | 리더보드 행 hover 트랜지션 |
+| `.panel` | `bg-bg1` + `border border-line1` |
+| `.panel-header` | 10px 14px 패딩 + `bg-bg2` 하단 보더 + 11px DISP uppercase tracking-1.8 |
+| `.section-label` | 10px DISP uppercase tracking-1.5 color-fg3 |
+| `.chev-tag` | 각진 inline-flex pill |
+| `.btn-ghost` | 투명 브로드캐스트 버튼 + hover/on 상태 |
+| `.clip-chev-{r, l, both, sm, hero}` | chevron clip-path 변형 |
+| `.disp`, `.cond`, `.mono`, `.tabular` | 폰트 스택 선택 |
+| `.dot-blink`, `.dot-blink-slow`, `.pulse` | 깜박임 / 펄스 애니메이션 |
+| `.ticker-track` | 60s linear 스크롤 (좌→우 -50%) |
+| `.glow-live`, `.glow-danger` | 상태 글로우 박스 쉐도우 |
+| `.lb-row` | 리더보드 행 hover 전이 |
+| `.glass` | 글래스모피즘 카드 (70% + blur 8px) |
 
 ---
 
-## 7. 레이싱 데이터 패턴
+## 8. 레이싱 데이터 패턴
 
-### 갭/인터벌 표시
+### 갭 / 인터벌
+- 리더(class 1위): `LEADER` 텍스트 (hypercar 또는 클래스 컬러)
+- `+N Lap` → muted (`text-fg3`)
+- `+m.ssss` → `mono` 기본
+- 모든 갭은 **클래스 상대 (class-relative)** 기준 — `gaps` 채널의 `gapToFirst` / `gapToAhead` 사용
 
-```
-LEAD    → text-yellow-300    (클래스 선두)
-+1 Lap  → text-muted-foreground (랩 차이)
-+3.456s → text-[#aaa]        (일반 갭)
-```
-
-### 랩타임 색상
-
-```
-최고 기록 (보라) → text-[hsl(var(--fastest))]
-피트 중 (회색)   → text-muted-foreground
-일반             → text-foreground
-```
+### 랩타임 컬러
+- **session best (SB)** → `text-fastest` (보라)
+- **personal best (PB)** → `text-live` (녹색)
+- 일반 / 유효 → `text-fg0`
+- 피트 중·삭제 → `text-fg3`
 
 ### 플래그 상태
 
-| 상태 | 배경 | 색상 |
-|---|---|---|
-| GREEN FLAG | `#002200` | `#00ff66` |
-| YELLOW FLAG | `#261800` | `#ffaa00` |
-| SAFETY CAR | `#1a0e00` | `#ff9933` |
-| RED FLAG | `#200000` | `#ff4444` |
+| 상태 | 토큰 |
+|---|---|
+| GREEN FLAG | `--flag-green` |
+| YELLOW FLAG | `--flag-yellow` |
+| SAFETY CAR | `--flag-sc` |
+| RED FLAG | `--flag-red` |
 
 ---
 
-## 8. 파일 구조
+## 9. 파일 구조
 
 ```
 app/
-├── globals.css              # CSS Custom Properties + base styles
+├── globals.css                # Pit Wall v3.0 토큰 + 유틸리티
 ├── components/
-│   ├── ui/                  # shadcn/ui primitives
-│   │   ├── badge.tsx        # Badge (CVA variants)
-│   │   ├── button.tsx       # Button (CVA variants)
-│   │   ├── card.tsx         # Card, CardHeader, CardTitle, CardContent
-│   │   ├── tabs.tsx         # Tabs (Radix TabsPrimitive)
-│   │   ├── scroll-area.tsx  # ScrollArea (Radix ScrollArea)
-│   │   ├── separator.tsx    # Separator (Radix Separator)
-│   │   └── slider.tsx       # Slider (Radix Slider)
-│   ├── ClassBadge.tsx       # Badge variant="hypercar/lmp2/lmgt3"
-│   ├── StatusBadge.tsx      # Badge variant="live/pit/danger/warning/info"
-│   ├── TireBadge.tsx        # 원형 타이어 배지 (Tailwind bg classes)
-│   ├── Header.tsx           # 레이스 헤더 (이름, 날씨, 세션 배지)
-│   ├── FlagBanner.tsx       # 플래그 상태 배너
-│   ├── StatsBar.tsx         # 4개 통계 카드 그리드
-│   ├── Leaderboard.tsx      # 리더보드 컨테이너
-│   ├── LeaderboardRow.tsx   # 개별 차량 행
-│   ├── Legend.tsx           # 색상 범례
-│   ├── MessageFeed.tsx      # 이벤트 로그 + 필터
-│   ├── StintOverview.tsx    # 스틴트 현황 패널
-│   ├── RoundBanner.tsx      # 라운드 상태 배너
-│   ├── ReplayBrowser.tsx    # 레이스 목록 브라우저
-│   └── ReplayControls.tsx   # 재생 컨트롤 (슬라이더 + 버튼)
+│   ├── ui/                    # shadcn/Radix primitives
+│   │   ├── badge.tsx          # CVA variants
+│   │   ├── button.tsx         # CVA variants
+│   │   ├── card.tsx
+│   │   ├── tabs.tsx           # underline 브로드캐스트 스타일
+│   │   ├── scroll-area.tsx
+│   │   ├── separator.tsx
+│   │   └── slider.tsx
+│   ├── Header.tsx             # 하이퍼카 레드 히어로 리본
+│   ├── FlagBanner.tsx         # chevron 플래그 태그 + 섹터 카드
+│   ├── StatsBar.tsx           # 4-col 통계
+│   ├── Leaderboard.tsx        # 필터 칩 + 스크롤
+│   ├── LeaderboardRow.tsx     # chevron POS 셀
+│   ├── Legend.tsx
+│   ├── MessageFeed.tsx        # 컬러바 + 필터
+│   ├── Ticker.tsx             # 하단 레드 티커
+│   ├── StintOverview.tsx
+│   ├── StintTimeline.tsx
+│   ├── StintAnalysis.tsx
+│   ├── DriverAnalysis.tsx
+│   ├── TrackMap.tsx           # 섹터 기반 점 배치
+│   ├── RoundBanner.tsx
+│   ├── ReplayBrowser.tsx
+│   ├── ReplayControls.tsx
+│   ├── ClassBadge.tsx
+│   ├── TireBadge.tsx
+│   └── StatusBadge.tsx
 ├── lib/
-│   └── utils.ts             # cn() = clsx + tailwind-merge
-tailwind.config.ts           # CSS variable 토큰 매핑
+│   └── utils.ts               # cn() = clsx + tailwind-merge
+tailwind.config.ts             # CSS var 토큰 매핑 + 폰트 스택
 ```
 
 ---
 
-## 9. 추가된 의존성
+## 10. 의존성
 
-| 패키지 | 버전 | 용도 |
-|---|---|---|
-| `class-variance-authority` | latest | Badge/Button CVA variants |
-| `clsx` | latest | 조건부 className 조합 |
-| `tailwind-merge` | latest | Tailwind 클래스 충돌 해결 |
-| `lucide-react` | latest | 아이콘 (향후 사용) |
-| `@radix-ui/react-tabs` | latest | 탭 네비게이션 primitive |
-| `@radix-ui/react-scroll-area` | latest | 커스텀 스크롤바 영역 |
-| `@radix-ui/react-slider` | latest | 리플레이 타임라인 슬라이더 |
-| `@radix-ui/react-separator` | latest | 구분선 |
+| 패키지 | 용도 |
+|---|---|
+| `class-variance-authority` | Badge/Button CVA variants |
+| `clsx` + `tailwind-merge` | `cn()` 조건부 className 조합 |
+| `lucide-react` | 아이콘 |
+| `@radix-ui/react-tabs` | 탭 네비게이션 |
+| `@radix-ui/react-scroll-area` | 커스텀 스크롤바 |
+| `@radix-ui/react-slider` | 리플레이 타임라인 |
+| `@radix-ui/react-separator` | 구분선 |
+| Google Fonts | Bai Jamjuree + Barlow Condensed + JetBrains Mono |
 
 ---
 
-*Design System version 2.0 — Pit Wall Dark*
-*Updated: 2026-04-21*
+*Design System version 3.0 — Pit Wall Broadcast Overlay*
+*Updated: 2026-04-22*

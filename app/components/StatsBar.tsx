@@ -5,24 +5,24 @@ import type { Stats } from '@/app/types/race'
 
 interface CardProps {
   label:       string
-  value:       string
-  sub?:        string
+  value:       React.ReactNode
+  sub?:        React.ReactNode
+  bar?:        string
   valueClass?: string
-  icon?:       string
 }
 
-function StatCard({ label, value, sub, valueClass, icon }: CardProps) {
+function StatCard({ label, value, sub, bar, valueClass }: CardProps) {
   return (
-    <div className="panel flex flex-col gap-1.5 px-4 py-3 flex-1 min-w-0">
-      <div className="flex items-center gap-1.5">
-        {icon && <span className="text-[12px] leading-none">{icon}</span>}
-        <span className="section-label">{label}</span>
-      </div>
-      <div className={cn('text-[18px] font-semibold tabular leading-none', valueClass ?? 'text-foreground')}>
+    <div
+      className="flex flex-col gap-1 px-4 py-3 bg-bg1 border border-line1 min-w-0"
+      style={bar ? { borderTop: `3px solid ${bar}` } : undefined}
+    >
+      <div className="section-label">{label}</div>
+      <div className={cn('mono text-[22px] font-bold leading-none truncate', valueClass ?? 'text-fg0')}>
         {value}
       </div>
-      {sub && (
-        <div className="text-[9px] text-muted-foreground truncate">{sub}</div>
+      {sub != null && (
+        <div className="mono text-[10px] text-fg3 truncate">{sub}</div>
       )}
     </div>
   )
@@ -30,31 +30,29 @@ function StatCard({ label, value, sub, valueClass, icon }: CardProps) {
 
 export default function StatsBar({ stats }: { stats: Stats }) {
   return (
-    <div className="grid grid-cols-4 gap-1.5">
+    <div className="grid grid-cols-4 gap-2">
       <StatCard
-        icon="🏁"
-        label="선두 랩"
+        label="LEADER LAP"
         value={String(stats.leaderLap)}
-        sub={`#${stats.fastestLap.carNum} 리더`}
+        sub={`#${stats.fastestLap.carNum} LEADS`}
+        bar="hsl(var(--accent))"
       />
       <StatCard
-        icon="🔧"
-        label="총 피트스톱"
+        label="TOTAL PITSTOPS"
         value={String(stats.totalPitstops)}
-        sub="전체 클래스 합산"
+        sub="ALL CLASSES"
       />
       <StatCard
-        icon="⚡"
-        label="패스티스트 랩"
+        label="FASTEST LAP"
         value={stats.fastestLap.time}
-        sub={`#${stats.fastestLap.carNum} ${stats.fastestLap.team}`}
-        valueClass="text-[hsl(var(--fastest))]"
+        sub={`#${stats.fastestLap.carNum} · ${stats.fastestLap.team}`}
+        valueClass="text-fastest"
+        bar="hsl(var(--fastest))"
       />
       <StatCard
-        icon="🚗"
-        label="세이프티카"
-        value={`${stats.safetyCars}회`}
-        sub={stats.safetyCarlap ? `Lap ${stats.safetyCarlap}` : '—'}
+        label="SAFETY CARS"
+        value={`${stats.safetyCars}`}
+        sub={stats.safetyCarlap ? `LAST · L${stats.safetyCarlap}` : '—'}
       />
     </div>
   )
