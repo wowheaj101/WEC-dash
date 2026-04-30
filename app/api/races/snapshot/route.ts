@@ -17,10 +17,36 @@ function racePath(year: number, round: number) {
   return `wec-dashboard/races/${year}/r${round}.json`
 }
 
+const MAX_BODY_BYTES = 512 * 1024  // 512 KB
+
 export async function POST(req: Request) {
   try {
+    // Same-origin check: reject cross-origin writes
+    const origin = req.headers.get('origin')
+    const host   = req.headers.get('host')
+    if (origin && host && !origin.includes(host)) {
+      return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+    }
+
+    // Body size guard
+    const contentLength = req.headers.get('content-length')
+    if (contentLength && parseInt(contentLength, 10) > MAX_BODY_BYTES) {
+      return NextResponse.json({ error: 'payload too large' }, { status: 413 })
+    }
+
     const body = (await req.json()) as SnapshotPayload
     const { year, round, name, circuit, countryFlag, duration, snapshot } = body
+
+    // Input validation
+    if (!Number.isInteger(year) || year < 2020 || year > 2035) {
+      return NextResponse.json({ error: 'invalid year' }, { status: 400 })
+    }
+    if (!Number.isInteger(round) || round < 1 || round > 15) {
+      return NextResponse.json({ error: 'invalid round' }, { status: 400 })
+    }
+    if (!name || !circuit || !snapshot || !Array.isArray(snapshot.cars)) {
+      return NextResponse.json({ error: 'invalid payload' }, { status: 400 })
+    }
 
     const path = racePath(year, round)
 

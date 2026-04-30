@@ -30,9 +30,17 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'lat and lon required' }, { status: 400 })
   }
 
+  const latNum = parseFloat(lat)
+  const lonNum = parseFloat(lon)
+  if (isNaN(latNum) || isNaN(lonNum) ||
+      latNum < -90 || latNum > 90 ||
+      lonNum < -180 || lonNum > 180) {
+    return NextResponse.json({ error: 'invalid coordinates' }, { status: 400 })
+  }
+
   try {
     const url = `https://api.open-meteo.com/v1/forecast` +
-      `?latitude=${lat}&longitude=${lon}` +
+      `?latitude=${latNum}&longitude=${lonNum}` +
       `&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m` +
       `&wind_speed_unit=kmh&timezone=auto`
 
