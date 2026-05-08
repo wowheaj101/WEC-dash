@@ -1,42 +1,30 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Car } from '@/app/types/race'
 import { CIRCUIT_SVG, SPA } from '@/app/data/trackPaths'
 import type { CircuitSVG } from '@/app/data/trackPaths'
 import { CURRENT_SEASON } from '@/app/data/calendar'
 import { getRoundStatus } from '@/app/lib/getRoundStatus'
+import { layoutCars } from '@/app/lib/trackGeometry'
 
 const CLASS_COLOR: Record<string, string> = {
-  HYPERCAR: '#ff4444',
-  LMP2:     '#4488ff',
-  LMGT3:    '#44cc55',
+  HYPERCAR: 'hsl(0 100% 59%)',
+  LMP2:     'hsl(214 100% 62%)',
+  LMGT3:    'hsl(140 66% 49%)',
 }
+
+const SECTOR_GLOW: [string, string, string] = [
+  'hsl(214 100% 62% / 0.14)',  // S1 — blue
+  'hsl(140 66% 49% / 0.14)',   // S2 — green
+  'hsl(0 100% 59% / 0.14)',    // S3 — red
+]
 
 interface Props {
   cars:        Car[]
   compact?:    boolean
   circuitKey?: string
   isLive?:     boolean
-}
-
-function carDotPosition(
-  car: Car,
-  circuit: CircuitSVG,
-  indexInSector: number,
-): [number, number] {
-  if (car.status === 'PIT') {
-    // Distribute pit cars along pit lane start point
-    const sfMidX = (circuit.sf[0] + circuit.sf[2]) / 2
-    const sfMidY = (circuit.sf[1] + circuit.sf[3]) / 2
-    return [sfMidX + (indexInSector % 4 - 1.5) * 9, sfMidY - 14]
-  }
-  const s = Math.min((car.sectorNum ?? 1) - 1, 2)
-  const [bx, by] = circuit.sectorPoints[s]
-  // Spread cars in a 3-wide grid so dots don't stack
-  const col = indexInSector % 3
-  const row = Math.floor(indexInSector / 3)
-  return [bx + (col - 1) * 11, by + (row - 1) * 11]
 }
 
 export default function TrackMap({ cars, compact, circuitKey, isLive }: Props) {
@@ -50,31 +38,47 @@ export default function TrackMap({ cars, compact, circuitKey, isLive }: Props) {
     (resolvedKey ? CIRCUIT_SVG[resolvedKey] : undefined) ?? SPA
   const label = resolvedKey ?? 'Circuit de Spa-Francorchamps'
 
-  // Group cars by sector for index-within-sector calculation
-  const sectorGroups = useMemo(() => {
-    const groups: Map<string, Car[]> = new Map()
-    for (const car of cars) {
-      const key = car.status === 'PIT' ? 'pit' : String(car.sectorNum ?? 1)
-      if (!groups.has(key)) groups.set(key, [])
-      groups.get(key)!.push(car)
+  // 16fps animation tick so dots advance between ranks updates (long-term: GPS)
+  const [tick, setTick] = useState(0)
+  const rafRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (!isLive) return
+    let last = 0
+    const step = (t: number) => {
+      if (t - last > 60) { last = t; setTick(n => (n + 1) % 1_000_000) }
+      rafRef.current = requestAnimationFrame(step)
     }
-    return groups
-  }, [cars])
+    rafRef.current = requestAnimationFrame(step)
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
+  }, [isLive])
+
+  const layout = useMemo(() => {
+    const now = Date.now()
+    const visibleCars = cars.filter(c => c.status !== 'OUT')
+    return layoutCars(circuit, visibleCars.map(c => ({
+      key:              c.carNum,
+      classPos:         c.clsPos,
+      sectorNum:        c.sectorNum,
+      isPit:            c.status === 'PIT',
+      sectorElapsedMs:  c.sectorEnterTs ? Math.max(0, now - c.sectorEnterTs) : undefined,
+      sectorDurationMs: c.sectorDurationMs,
+    })))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cars, circuit, tick])
+
+  const posByKey = useMemo(() => {
+    const m = new Map<string | number, [number, number]>()
+    for (const l of layout) m.set(l.key, l.pos)
+    return m
+  }, [layout])
+
+  const dotRadius = compact ? 4 : 6
 
   return (
-    <div style={{
-      background:    '#0f0f0f',
-      border:        '0.5px solid #2a2a2a',
-      borderRadius:  8,
-      padding:       compact ? 8 : 12,
-      display:       'flex',
-      flexDirection: 'column',
-      gap:           8,
-    }}>
+    <div className="bg-bg1 border border-line1 rounded-sm flex flex-col gap-2"
+      style={{ padding: compact ? 8 : 12 }}>
       {!compact && (
-        <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: 1 }}>
-          트랙맵 — {label}
-        </div>
+        <div className="section-label">트랙맵 — {label}</div>
       )}
 
       <svg
@@ -82,73 +86,100 @@ export default function TrackMap({ cars, compact, circuitKey, isLive }: Props) {
         style={{ width: '100%', height: compact ? 170 : 'auto' }}
         preserveAspectRatio="xMidYMid meet"
       >
-        {/* Pit lane */}
-        <path d={circuit.pitLane} stroke="#ff9900" strokeWidth="3"
-          strokeDasharray="4,3" fill="none" opacity="0.35" />
+        {/* 1. Background — sector glow halos */}
+        {!compact && circuit.sectorPoints.map(([cx, cy], i) => (
+          <circle key={`glow-${i}`} cx={cx} cy={cy} r={42}
+            fill={SECTOR_GLOW[i]} />
+        ))}
 
-        {/* Track border (glow) */}
-        <path d={circuit.path} stroke="#1e1e1e"
+        {/* 2. Sector dividers (overlay lines, semi-transparent) */}
+        {circuit.sectors.map(([x1, y1, x2, y2], i) => (
+          <line key={`sec-${i}`} x1={x1} y1={y1} x2={x2} y2={y2}
+            stroke="hsl(45 100% 48% / 0.55)" strokeWidth="1.5"
+            strokeDasharray="2,2" />
+        ))}
+
+        {/* 3. Track — glow + surface */}
+        <path d={circuit.path} stroke="hsl(222 14% 13%)"
           strokeWidth={compact ? 10 : 14}
           fill="none" strokeLinecap="round" strokeLinejoin="round" />
-
-        {/* Track surface */}
-        <path d={circuit.path} stroke="#2e2e2e"
+        <path d={circuit.path} stroke="hsl(222 14% 22%)"
           strokeWidth={compact ? 7 : 10}
           fill="none" strokeLinecap="round" strokeLinejoin="round" />
 
-        {/* S/F line */}
-        <line
-          x1={circuit.sf[0]} y1={circuit.sf[1]}
-          x2={circuit.sf[2]} y2={circuit.sf[3]}
-          stroke="#fff" strokeWidth="2"
-        />
-        {!compact && (
-          <text
-            x={circuit.sf[2] + 3} y={(circuit.sf[1] + circuit.sf[3]) / 2}
-            fontSize="8" fill="#888" dominantBaseline="middle"
-          >
-            S/F
-          </text>
-        )}
+        {/* 4. Pit lane */}
+        <path d={circuit.pitLane} stroke="hsl(42 100% 50%)" strokeWidth="3"
+          strokeDasharray="4,3" fill="none" opacity="0.45" />
 
-        {/* Sector markers */}
-        {circuit.sectors.map(([x1, y1, x2, y2], i) => (
-          <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}
-            stroke="#ffff55" strokeWidth="1.5" opacity="0.6" />
+        {/* 5. DRS / overtake zones */}
+        {!compact && circuit.drs?.map(([x1, y1, x2, y2], i) => (
+          <line key={`drs-${i}`} x1={x1} y1={y1} x2={x2} y2={y2}
+            stroke="hsl(276 100% 71%)" strokeWidth="2.5"
+            strokeLinecap="round" opacity="0.35" />
         ))}
 
-        {/* Circuit label (compact mode) */}
-        {compact && (
-          <text x="12" y="18" fontSize="7" fill="#444"
-            style={{ fontFamily: 'monospace' }}>
-            {label.replace('Circuit de ', '').replace(' International Circuit', '')}
-          </text>
+        {/* 6. Corner numbers */}
+        {!compact && circuit.corners?.map((c) => (
+          <g key={`corner-${c.n}`}>
+            <circle cx={c.x} cy={c.y} r="7"
+              fill="hsl(222 14% 6%)" stroke="hsl(220 7% 39%)" strokeWidth="0.5" />
+            <text x={c.x} y={c.y + 0.5}
+              fontSize="8" fill="hsl(220 8% 87%)"
+              textAnchor="middle" dominantBaseline="middle"
+              className="mono">
+              {c.n}
+            </text>
+          </g>
+        ))}
+
+        {/* 7. Pit in / Pit out markers */}
+        {!compact && circuit.pitIn && (
+          <g>
+            <circle cx={circuit.pitIn[0]} cy={circuit.pitIn[1]} r="3"
+              fill="hsl(42 100% 50%)" />
+            <text x={circuit.pitIn[0] + 6} y={circuit.pitIn[1] + 3}
+              fontSize="7" fill="hsl(42 100% 50%)" className="mono">
+              PIT IN
+            </text>
+          </g>
+        )}
+        {!compact && circuit.pitOut && (
+          <g>
+            <circle cx={circuit.pitOut[0]} cy={circuit.pitOut[1]} r="3"
+              fill="hsl(42 100% 50%)" />
+            <text x={circuit.pitOut[0] + 6} y={circuit.pitOut[1] + 3}
+              fontSize="7" fill="hsl(42 100% 50%)" className="mono">
+              PIT OUT
+            </text>
+          </g>
         )}
 
-        {/* Car dots — sector-based positions when live */}
+        {/* 8. Car dots — interpolated sector-based positions */}
         {isLive && cars
           .filter(c => c.status !== 'OUT')
           .map(car => {
-            const key = car.status === 'PIT' ? 'pit' : String(car.sectorNum ?? 1)
-            const group = sectorGroups.get(key) ?? []
-            const idx = group.findIndex(c => c.carNum === car.carNum)
-            const [x, y] = carDotPosition(car, circuit, Math.max(idx, 0))
+            const pos = posByKey.get(car.carNum)
+            if (!pos) return null
+            const [x, y] = pos
             const color    = CLASS_COLOR[car.carClass]
             const isPit    = car.status === 'PIT'
-            const dotColor = isPit ? '#ff9900' : color
-            const r        = compact ? 4 : 6
+            const dotColor = isPit ? 'hsl(42 100% 50%)' : color
 
             return (
-              <g key={car.carNum}>
-                <circle cx={x} cy={y} r={r + 3} fill={dotColor} opacity="0.15" />
-                <circle cx={x} cy={y} r={r}
-                  fill={dotColor} stroke="#000" strokeWidth="1"
-                  opacity={isPit ? 0.6 : 1}
-                />
+              <g key={car.carNum}
+                style={{ transition: 'transform 200ms ease-out' }}>
+                <circle cx={x} cy={y} r={dotRadius + 3}
+                  fill={dotColor} opacity="0.18"
+                  style={{ transition: 'cx 200ms ease-out, cy 200ms ease-out' }} />
+                <circle cx={x} cy={y} r={dotRadius}
+                  fill={dotColor} stroke="hsl(222 16% 3%)" strokeWidth="1"
+                  opacity={isPit ? 0.55 : 1}
+                  style={{ transition: 'cx 200ms ease-out, cy 200ms ease-out' }} />
                 {!compact && (
-                  <text x={x + r + 3} y={y + 1}
+                  <text x={x + dotRadius + 3} y={y + 1}
                     fontSize="8" fill={color} dominantBaseline="middle"
-                    style={{ fontFamily: 'monospace' }}
+                    className="mono"
+                    style={{ transition: 'x 200ms ease-out, y 200ms ease-out' }}
                   >
                     {car.carNum}
                   </text>
@@ -158,29 +189,58 @@ export default function TrackMap({ cars, compact, circuitKey, isLive }: Props) {
           })
         }
 
+        {/* 9. S/F line — drawn last so it sits above everything */}
+        <line
+          x1={circuit.sf[0]} y1={circuit.sf[1]}
+          x2={circuit.sf[2]} y2={circuit.sf[3]}
+          stroke="hsl(220 8% 96%)" strokeWidth="2"
+        />
+        {!compact && (
+          <text
+            x={circuit.sf[2] + 3} y={(circuit.sf[1] + circuit.sf[3]) / 2}
+            fontSize="8" fill="hsl(220 7% 57%)" dominantBaseline="middle"
+            className="mono"
+          >
+            S/F
+          </text>
+        )}
+
+        {/* 10. Compact label */}
+        {compact && (
+          <text x="12" y="18" fontSize="7" fill="hsl(220 7% 39%)" className="mono">
+            {label.replace('Circuit de ', '').replace(' International Circuit', '')}
+          </text>
+        )}
+
         {!isLive && !compact && (
-          <text x="240" y="340" textAnchor="middle"
-            fontSize="9" fill="#333" style={{ fontFamily: 'monospace' }}>
+          <text x="240" y="360" textAnchor="middle"
+            fontSize="9" fill="hsl(220 7% 25%)" className="mono">
             라이브 연결 시 차량 위치 표시
           </text>
         )}
       </svg>
 
       {!compact && (
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 9, color: '#555' }}>
+        <div className="flex flex-wrap gap-3 text-[9px] text-fg3">
           {(['HYPERCAR', 'LMP2', 'LMGT3'] as const).map(cls => (
-            <span key={cls} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{
-                width: 8, height: 8, borderRadius: '50%',
-                background: CLASS_COLOR[cls], display: 'inline-block',
-              }} />
+            <span key={cls} className="flex items-center gap-1">
+              <span className="inline-block w-2 h-2 rounded-full"
+                style={{ background: CLASS_COLOR[cls] }} />
               {cls}
             </span>
           ))}
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ width: 16, height: 2, background: '#ff9900', display: 'inline-block', opacity: 0.5 }} />
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-4 h-0.5 opacity-50"
+              style={{ background: 'hsl(42 100% 50%)' }} />
             PIT LANE
           </span>
+          {circuit.drs && circuit.drs.length > 0 && (
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-4 h-0.5 opacity-50"
+                style={{ background: 'hsl(276 100% 71%)' }} />
+              DRS / OVERTAKE
+            </span>
+          )}
         </div>
       )}
     </div>

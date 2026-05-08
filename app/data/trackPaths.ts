@@ -1,5 +1,18 @@
-// Simplified SVG track outlines — viewBox "0 0 480 380"
-// Approximate circuit silhouettes, not exact replicas.
+// SVG track outlines — viewBox "0 0 480 380"
+// Approximate circuit silhouettes with corner markers and overtake zones.
+
+export interface CircuitCorner {
+  /** Corner number (FIA numbering) */
+  n:     number
+  /** Label position (viewBox units) */
+  x:     number
+  y:     number
+  /** Optional short name (Eau Rouge, Tamburello, ...) */
+  name?: string
+}
+
+/** Overtake / DRS zone: [x1, y1, x2, y2] line segment */
+export type OvertakeZone = [number, number, number, number]
 
 export interface CircuitSVG {
   path:    string
@@ -10,6 +23,14 @@ export interface CircuitSVG {
   sectors: Array<[number, number, number, number]>
   /** Approximate car spawn point for each sector [s1, s2, s3] */
   sectorPoints: [[number, number], [number, number], [number, number]]
+  /** Corner numbers/positions (rendered as text overlay) */
+  corners?: CircuitCorner[]
+  /** Overtake / slipstream / DRS-like zones */
+  drs?: OvertakeZone[]
+  /** Pit entry coordinate */
+  pitIn?:  [number, number]
+  /** Pit exit coordinate */
+  pitOut?: [number, number]
 }
 
 // ── Circuit de Spa-Francorchamps ──────────────────────────────────────
@@ -32,10 +53,24 @@ const SPA: CircuitSVG = {
     [264, 239, 272, 247],
   ],
   sectorPoints: [[228, 265], [158, 96], [318, 268]],
+  corners: [
+    { n: 1,  x: 286, y: 223, name: 'La Source' },
+    { n: 2,  x: 215, y: 258, name: 'Eau Rouge' },
+    { n: 3,  x: 222, y: 240, name: 'Raidillon' },
+    { n: 5,  x: 205, y: 180, name: 'Les Combes' },
+    { n: 8,  x: 170, y: 130, name: 'Pouhon' },
+    { n: 13, x: 135, y: 100, name: 'Blanchimont' },
+    { n: 18, x: 340, y: 260, name: 'Bus Stop' },
+  ],
+  drs: [
+    [224, 256, 196, 158], // Kemmel straight
+    [268, 215, 286, 225], // S/F straight
+  ],
+  pitIn:  [355, 250],
+  pitOut: [286, 215],
 }
 
 // ── Lusail International Circuit ─────────────────────────────────────
-// Complex 16-turn layout — simplified to key direction changes
 const LUSAIL: CircuitSVG = {
   path: `M 400,308 L 452,308 Q 466,308 466,285
     L 466,248 Q 466,224 444,216
@@ -61,10 +96,23 @@ const LUSAIL: CircuitSVG = {
     [278, 297, 270, 305],
   ],
   sectorPoints: [[435, 155], [310, 170], [340, 330]],
+  corners: [
+    { n: 1,  x: 455, y: 300 },
+    { n: 4,  x: 430, y: 218 },
+    { n: 6,  x: 396, y: 200 },
+    { n: 10, x: 365, y: 60 },
+    { n: 14, x: 330, y: 228 },
+    { n: 16, x: 290, y: 335 },
+  ],
+  drs: [
+    [396, 305, 452, 305], // main straight (T16 → T1)
+    [378, 175, 422, 220], // back straight approach
+  ],
+  pitIn:  [395, 320],
+  pitOut: [452, 300],
 }
 
 // ── Autodromo Enzo e Dino Ferrari (Imola) ────────────────────────────
-// Counter-clockwise. SF right-centre → Tamburello → Villeneuve → Tosa → Rivazza → back
 const IMOLA: CircuitSVG = {
   path: `M 400,195
     L 396,150 L 390,112
@@ -91,10 +139,24 @@ const IMOLA: CircuitSVG = {
     [242, 300, 250, 308],
   ],
   sectorPoints: [[392, 128], [278, 110], [282, 295]],
+  corners: [
+    { n: 2,  x: 390, y: 98,  name: 'Tamburello' },
+    { n: 3,  x: 342, y: 72,  name: 'Villeneuve' },
+    { n: 7,  x: 268, y: 124, name: 'Tosa' },
+    { n: 9,  x: 208, y: 180, name: 'Piratella' },
+    { n: 11, x: 252, y: 228, name: 'Acque Minerali' },
+    { n: 14, x: 256, y: 294, name: 'Variante Alta' },
+    { n: 17, x: 310, y: 320, name: 'Rivazza' },
+  ],
+  drs: [
+    [400, 195, 390, 112], // main straight
+    [262, 132, 218, 148], // Tosa → Piratella
+  ],
+  pitIn:  [400, 220],
+  pitOut: [440, 191],
 }
 
 // ── Circuit de la Sarthe (Le Mans) ───────────────────────────────────
-// Distinctive elongated shape — long Hunaudières on the right
 const LE_MANS: CircuitSVG = {
   path: `M 415,334 L 415,52
     Q 415,32 396,25 Q 377,18 367,34
@@ -112,6 +174,23 @@ const LE_MANS: CircuitSVG = {
     [66, 326, 66, 342],
   ],
   sectorPoints: [[415, 185], [35, 215], [198, 334]],
+  corners: [
+    { n: 1,  x: 385, y: 30,  name: 'Dunlop' },
+    { n: 2,  x: 360, y: 115, name: 'Forza' },
+    { n: 4,  x: 250, y: 115, name: 'Tertre Rouge' },
+    { n: 8,  x: 45,  y: 145, name: 'Mulsanne' },
+    { n: 10, x: 50,  y: 320, name: 'Indianapolis' },
+    { n: 12, x: 290, y: 328, name: 'Arnage' },
+    { n: 15, x: 310, y: 298, name: 'Porsche Curves' },
+    { n: 17, x: 400, y: 328, name: 'Ford Chicane' },
+  ],
+  drs: [
+    [415, 122, 415, 52],  // pit straight
+    [352, 122, 68, 122],  // Mulsanne straight (the iconic one)
+    [35, 150, 35, 280],   // Indianapolis→Arnage link
+  ],
+  pitIn:  [415, 310],
+  pitOut: [411, 60],
 }
 
 // ── Autodromo José Carlos Pace (Interlagos) ──────────────────────────
@@ -139,10 +218,23 @@ const INTERLAGOS: CircuitSVG = {
     [212, 302, 204, 310],
   ],
   sectorPoints: [[310, 92], [268, 215], [248, 285]],
+  corners: [
+    { n: 1,  x: 296, y: 56,  name: 'Senna S' },
+    { n: 2,  x: 340, y: 90 },
+    { n: 4,  x: 225, y: 135, name: 'Descida do Lago' },
+    { n: 7,  x: 250, y: 220, name: 'Ferradura' },
+    { n: 10, x: 280, y: 340, name: 'Juncao' },
+    { n: 12, x: 230, y: 292, name: 'Mergulho' },
+  ],
+  drs: [
+    [278, 340, 276, 52],  // pit/back straight (Juncao → S/F)
+    [340, 125, 312, 260], // Reta Oposta
+  ],
+  pitIn:  [280, 52],
+  pitOut: [320, 56],
 }
 
 // ── Fuji Speedway ────────────────────────────────────────────────────
-// Long front straight (top), sweeping right-hand section below
 const FUJI: CircuitSVG = {
   path: `M 58,98 L 406,98
     Q 432,98 438,127 L 438,200
@@ -162,10 +254,23 @@ const FUJI: CircuitSVG = {
     [235, 218, 227, 210],
   ],
   sectorPoints: [[248, 98], [330, 272], [238, 165]],
+  corners: [
+    { n: 1,  x: 432, y: 140, name: 'TGR' },
+    { n: 3,  x: 425, y: 240, name: 'Coca-Cola' },
+    { n: 5,  x: 300, y: 285, name: '100R' },
+    { n: 7,  x: 340, y: 380, name: 'Hairpin' },
+    { n: 11, x: 230, y: 225, name: 'Dunlop' },
+    { n: 13, x: 210, y: 132, name: 'Panasonic' },
+    { n: 15, x: 40,  y: 100 },
+  ],
+  drs: [
+    [60, 98, 406, 98],  // main straight — 1.5km, the longest on the WEC calendar after Mulsanne
+  ],
+  pitIn:  [406, 108],
+  pitOut: [58, 94],
 }
 
 // ── Bahrain International Circuit ────────────────────────────────────
-// Multi-section layout with several hairpins
 const BAHRAIN: CircuitSVG = {
   path: `M 238,52 L 298,52
     Q 322,52 330,78 L 333,118
@@ -194,6 +299,21 @@ const BAHRAIN: CircuitSVG = {
     [200, 280, 192, 288],
   ],
   sectorPoints: [[342, 100], [355, 215], [220, 200]],
+  corners: [
+    { n: 1,  x: 325, y: 66 },
+    { n: 4,  x: 410, y: 160 },
+    { n: 8,  x: 402, y: 285 },
+    { n: 10, x: 315, y: 265 },
+    { n: 13, x: 198, y: 272 },
+    { n: 15, x: 210, y: 135 },
+  ],
+  drs: [
+    [238, 52, 298, 52],   // main straight (T15 → T1)
+    [333, 118, 362, 96],  // T3→T4 approach
+    [238, 204, 238, 115], // T10→T11 back straight
+  ],
+  pitIn:  [240, 60],
+  pitOut: [298, 48],
 }
 
 // ── Export map (keyed by WECRound.circuit) ────────────────────────────

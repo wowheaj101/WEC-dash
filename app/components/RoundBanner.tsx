@@ -1,9 +1,9 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { cn } from '@/app/lib/utils'
 import { CURRENT_SEASON } from '@/app/data/calendar'
-import { getRoundStatus, formatDaysUntil } from '@/app/lib/getRoundStatus'
+import { getRoundStatus, formatDaysUntil, getCountdown, formatCountdown, type Countdown } from '@/app/lib/getRoundStatus'
 
 interface Props {
   isLive:           boolean
@@ -12,6 +12,18 @@ interface Props {
 
 export default function RoundBanner({ isLive, showingPrevious = false }: Props) {
   const status = useMemo(() => getRoundStatus(CURRENT_SEASON), [])
+  const [mounted, setMounted] = useState(false)
+  const [countdown, setCountdown] = useState<Countdown | null>(null)
+
+  useEffect(() => {
+    setMounted(true)
+    const target = status.next?.raceStart
+    if (!target) return
+    const tick = () => setCountdown(getCountdown(target))
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [status.next?.raceStart])
   if (isLive) return null
 
   // Previous round result view — distinct banner
@@ -68,11 +80,16 @@ export default function RoundBanner({ isLive, showingPrevious = false }: Props) 
             NEXT · R{next.round} {next.countryFlag} {next.name} ({formatDaysUntil(daysUntilNext)})
           </span>
         )}
+        {mounted && countdown && countdown.totalMs > 0 && (
+          <CountdownBadge countdown={countdown} />
+        )}
       </Banner>
     )
   }
 
   if (!next) return null
+
+  const underOneHour = mounted && countdown !== null && countdown.totalMs > 0 && countdown.totalMs < 3_600_000
 
   if (phase === 'race_week') {
     return (
@@ -88,10 +105,14 @@ export default function RoundBanner({ isLive, showingPrevious = false }: Props) 
           {new Date(next.raceStart).toLocaleDateString('ko-KR', {
             month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC',
           })} UTC
-          {daysUntilNext !== null && (
-            <span className="text-live ml-1.5">{formatDaysUntil(daysUntilNext)}</span>
-          )}
         </span>
+        {mounted && countdown && countdown.totalMs > 0 && (
+          <span className="ml-auto whitespace-nowrap mono text-[11px] font-bold text-live bg-live-bg border border-live-border px-2 py-0.5">
+            {underOneHour
+              ? `STARTS IN ${formatCountdown(countdown, 'hms')}`
+              : formatCountdown(countdown)}
+          </span>
+        )}
       </Banner>
     )
   }
@@ -110,12 +131,18 @@ export default function RoundBanner({ isLive, showingPrevious = false }: Props) 
           month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC',
         })} UTC
       </span>
-      {daysUntilNext !== null && (
-        <span className="ml-auto mono text-[11px] text-fg0 bg-bg2 border border-line2 px-2 py-0.5">
-          {formatDaysUntil(daysUntilNext)}
-        </span>
+      {mounted && countdown && countdown.totalMs > 0 && (
+        <CountdownBadge countdown={countdown} />
       )}
     </Banner>
+  )
+}
+
+function CountdownBadge({ countdown }: { countdown: Countdown }) {
+  return (
+    <span className="ml-auto whitespace-nowrap mono text-[11px] text-fg0 bg-bg2 border border-line2 px-2 py-0.5">
+      {formatCountdown(countdown)}
+    </span>
   )
 }
 

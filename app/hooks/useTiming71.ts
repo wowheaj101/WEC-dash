@@ -153,6 +153,12 @@ export function useTiming71(): UseTiming71Result {
 
   const stintRef        = useRef<Map<number, StintEntry[]>>(new Map())
 
+  // Per-car sector timing (for TrackMap linear interpolation)
+  //   sectorEnterTsRef: ts (ms) when the car last entered its current sector
+  //   sectorDurationRef: rolling-average duration of each sector (s1/s2/s3)
+  const sectorEnterTsRef  = useRef<Map<number, { sector: number; ts: number }>>(new Map())
+  const sectorDurationRef = useRef<Map<number, [number, number, number]>>(new Map())
+
   const clientRef       = useRef<GriiipClient | null>(null)
   const latestRef       = useRef({ cars, raceInfo, stats, messages })
   const snapshotIdxRef  = useRef(0)
@@ -183,6 +189,16 @@ export function useTiming71(): UseTiming71Result {
         const status: Status = rank?.isDeleted ? 'OUT'
           : (laps?.inPit ? 'PIT' : 'RUN')
 
+        const sectorEnter = sectorEnterTsRef.current.get(p.id)
+        const sectorDurs  = sectorDurationRef.current.get(p.id)
+        const sectorNum   = rank?.sectorNumber
+        const sectorEnterTs = sectorEnter && sectorEnter.sector === sectorNum
+          ? sectorEnter.ts
+          : undefined
+        const sectorDurationMs = sectorDurs && sectorNum
+          ? sectorDurs[Math.max(0, Math.min(2, sectorNum - 1))] || undefined
+          : undefined
+
         return {
           pos:          rank?.overallPosition ?? 999,
           clsPos:       rank?.position        ?? 999,
@@ -202,6 +218,8 @@ export function useTiming71(): UseTiming71Result {
           lastColor:    laps?.lastColor ?? undefined,
           bestColor:    laps?.bestColor ?? undefined,
           sectorNum:    rank?.sectorNumber,
+          sectorEnterTs,
+          sectorDurationMs,
         } as Car
       })
       .filter(c => c.pos !== 999)
@@ -383,6 +401,8 @@ export function useTiming71(): UseTiming71Result {
     lapRef.current          = new Map()
     pitCountRef.current     = new Map()
     stintRef.current        = new Map()
+    sectorEnterTsRef.current  = new Map()
+    sectorDurationRef.current = new Map()
     clockRef.current        = null
     scheduleRef.current     = null
     flagRef.current         = 'GREEN'
@@ -470,7 +490,30 @@ export function useTiming71(): UseTiming71Result {
       },
 
       onRanks: (items) => {
-        for (const item of items) rankRef.current.set(item.pid, item)
+        const now = Date.now()
+        for (const item of items) {
+          const prev = rankRef.current.get(item.pid)
+          rankRef.current.set(item.pid, item)
+
+          // Detect sector transition (new sectorNumber or new lap)
+          const prevEnter = sectorEnterTsRef.current.get(item.pid)
+          const sectorChanged = !prevEnter
+            || prevEnter.sector !== item.sectorNumber
+            || (prev && prev.lapNumber !== item.lapNumber)
+          if (sectorChanged && item.sectorNumber) {
+            // Update rolling-average duration for the sector just exited
+            if (prevEnter && prevEnter.sector >= 1 && prevEnter.sector <= 3) {
+              const elapsed = now - prevEnter.ts
+              if (elapsed > 3_000 && elapsed < 600_000) {
+                const durs = sectorDurationRef.current.get(item.pid) ?? [0, 0, 0] as [number, number, number]
+                const idx  = prevEnter.sector - 1
+                durs[idx]  = durs[idx] === 0 ? elapsed : Math.round(durs[idx] * 0.7 + elapsed * 0.3)
+                sectorDurationRef.current.set(item.pid, durs)
+              }
+            }
+            sectorEnterTsRef.current.set(item.pid, { sector: item.sectorNumber, ts: now })
+          }
+        }
         flush()
       },
 

@@ -22,6 +22,10 @@ export interface Car {
   lastColor?:    'sb' | 'pb'
   bestColor?:    'sb' | 'pb'
   sectorNum?:    number
+  /** Absolute ts (ms) when the car entered its current sector — used for TrackMap interpolation */
+  sectorEnterTs?:    number
+  /** Rolling average duration of the car's current sector in ms */
+  sectorDurationMs?: number
 }
 
 export interface RaceInfo {

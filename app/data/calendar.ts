@@ -5,6 +5,12 @@ export interface WECRound {
   country:     string
   countryFlag: string
   duration:    string
+  /**
+   * Round weekend start — UTC ISO string.
+   * 라운드 시작 시점 (FP1 시작 시각). 프랙티스/퀄리파잉 포함.
+   * `getRoundStatus`는 이 시각부터 `raceEnd`까지를 `active` phase로 판정한다.
+   */
+  weekendStart: string
   /** Race start — UTC ISO string */
   raceStart:   string
   /** Race end — UTC ISO string */
@@ -26,6 +32,7 @@ export const CALENDAR_2026: WECRound[] = [
     country:     'Italy',
     countryFlag: '🇮🇹',
     duration:    '6h',
+    weekendStart:'2026-04-17T00:00:00Z',
     raceStart:   '2026-04-19T11:00:00Z',
     raceEnd:     '2026-04-19T17:00:00Z',
     lat:         44.341,
@@ -38,6 +45,7 @@ export const CALENDAR_2026: WECRound[] = [
     country:     'Belgium',
     countryFlag: '🇧🇪',
     duration:    '6h',
+    weekendStart:'2026-05-07T00:00:00Z',
     raceStart:   '2026-05-09T11:30:00Z',
     raceEnd:     '2026-05-09T17:30:00Z',
     lat:         50.437,
@@ -50,6 +58,7 @@ export const CALENDAR_2026: WECRound[] = [
     country:     'France',
     countryFlag: '🇫🇷',
     duration:    '24h',
+    weekendStart:'2026-06-07T00:00:00Z',
     raceStart:   '2026-06-13T14:00:00Z',
     raceEnd:     '2026-06-14T14:00:00Z',
     lat:         47.956,
@@ -62,6 +71,7 @@ export const CALENDAR_2026: WECRound[] = [
     country:     'Brazil',
     countryFlag: '🇧🇷',
     duration:    '6h',
+    weekendStart:'2026-07-10T00:00:00Z',
     raceStart:   '2026-07-12T14:00:00Z',
     raceEnd:     '2026-07-12T20:00:00Z',
     lat:         -23.703,
@@ -74,6 +84,7 @@ export const CALENDAR_2026: WECRound[] = [
     country:     'United States',
     countryFlag: '🇺🇸',
     duration:    '6h',
+    weekendStart:'2026-09-04T00:00:00Z',
     raceStart:   '2026-09-06T18:00:00Z',
     raceEnd:     '2026-09-07T00:00:00Z',
     lat:         30.133,
@@ -86,6 +97,7 @@ export const CALENDAR_2026: WECRound[] = [
     country:     'Japan',
     countryFlag: '🇯🇵',
     duration:    '6h',
+    weekendStart:'2026-09-25T00:00:00Z',
     raceStart:   '2026-09-27T02:00:00Z',
     raceEnd:     '2026-09-27T08:00:00Z',
     lat:         35.372,
@@ -98,6 +110,7 @@ export const CALENDAR_2026: WECRound[] = [
     country:     'Qatar',
     countryFlag: '🇶🇦',
     duration:    '~10h',
+    weekendStart:'2026-10-22T00:00:00Z',
     raceStart:   '2026-10-24T14:00:00Z',
     raceEnd:     '2026-10-25T00:00:00Z',
     lat:         25.490,
@@ -110,6 +123,7 @@ export const CALENDAR_2026: WECRound[] = [
     country:     'Bahrain',
     countryFlag: '🇧🇭',
     duration:    '8h',
+    weekendStart:'2026-11-05T00:00:00Z',
     raceStart:   '2026-11-07T12:00:00Z',
     raceEnd:     '2026-11-07T20:00:00Z',
     lat:         26.032,
