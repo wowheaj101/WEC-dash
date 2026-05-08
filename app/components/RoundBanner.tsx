@@ -1,164 +1,156 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
-import { cn } from '@/app/lib/utils'
+import { useEffect, useState } from 'react'
 import { CURRENT_SEASON } from '@/app/data/calendar'
-import { getRoundStatus, formatDaysUntil, getCountdown, formatCountdown, type Countdown } from '@/app/lib/getRoundStatus'
+import { getCountdown, getRoundStatus, type Countdown } from '@/app/lib/getRoundStatus'
+import { shortSessionLabel, type SessionMeta } from '@/app/lib/griiipResults'
 
 interface Props {
-  isLive:           boolean
-  showingPrevious?: boolean
+  isLive:    boolean
+  sessions?: SessionMeta[]
 }
 
-export default function RoundBanner({ isLive, showingPrevious = false }: Props) {
-  const status = useMemo(() => getRoundStatus(CURRENT_SEASON), [])
-  const [mounted, setMounted] = useState(false)
-  const [countdown, setCountdown] = useState<Countdown | null>(null)
+interface NextEvent {
+  kind:      'session' | 'round'
+  label:     string
+  sublabel:  string
+  startTime: string
+}
+
+function findNextEvent(sessions: SessionMeta[]): NextEvent | null {
+  const status = getRoundStatus(CURRENT_SEASON)
+  const now    = Date.now()
+
+  const upcoming = sessions
+    .filter(s => new Date(s.startTime).getTime() > now)
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+
+  if (upcoming[0]) {
+    const r = status.current ?? status.next
+    return {
+      kind:      'session',
+      label:     shortSessionLabel(upcoming[0]),
+      sublabel:  r ? `${upcoming[0].name} · ${r.countryFlag} ${r.name}` : upcoming[0].name,
+      startTime: upcoming[0].startTime,
+    }
+  }
+
+  if (status.next) {
+    return {
+      kind:      'round',
+      label:     `R${status.next.round} ${status.next.countryFlag} ${status.next.name}`,
+      sublabel:  `${status.next.circuit} · ${status.next.duration}`,
+      startTime: status.next.raceStart,
+    }
+  }
+
+  return null
+}
+
+export default function RoundBanner({ isLive, sessions = [] }: Props) {
+  const [next, setNext]         = useState<NextEvent | null>(null)
+  const [cd,   setCd]           = useState<Countdown | null>(null)
+  const [flashing, setFlashing] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
-    const target = status.next?.raceStart
-    if (!target) return
-    const tick = () => setCountdown(getCountdown(target))
+    let prev: number | null = null
+    let flashId: ReturnType<typeof setTimeout> | null = null
+
+    const tick = () => {
+      const ne = findNextEvent(sessions)
+      setNext(ne)
+      if (!ne) {
+        setCd(null)
+        prev = null
+        return
+      }
+      const c = getCountdown(ne.startTime)
+      if (prev !== null && prev > 0 && c.totalMs <= 0) {
+        setFlashing(true)
+        if (flashId) clearTimeout(flashId)
+        flashId = setTimeout(() => setFlashing(false), 3000)
+      }
+      prev = c.totalMs
+      setCd(c)
+    }
+
     tick()
     const id = setInterval(tick, 1000)
-    return () => clearInterval(id)
-  }, [status.next?.raceStart])
-  if (isLive) return null
+    return () => {
+      clearInterval(id)
+      if (flashId) clearTimeout(flashId)
+    }
+  }, [sessions])
 
-  // Previous round result view — distinct banner
-  if (showingPrevious && status.previous) {
-    const p = status.previous
-    return (
-      <Banner accent="hsl(var(--accent))">
-        <span className="disp font-bold tracking-[1.5px] text-accent text-[11px] uppercase">
-          PREVIOUS ROUND RESULT
-        </span>
-        <span className="text-fg0 font-semibold text-[12px]">
-          R{p.round} {p.countryFlag} {p.name}
-        </span>
-        <span className="mono text-[10px] text-fg3">
-          {p.circuit} · {p.duration} ·{' '}
-          {new Date(p.raceEnd).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', timeZone: 'UTC' })} 종료
-        </span>
-        {status.next && status.daysUntilNext !== null && (
-          <span className="ml-auto mono text-[10px] text-fg3">
-            NEXT · R{status.next.round} {status.next.countryFlag} ({formatDaysUntil(status.daysUntilNext)})
-          </span>
-        )}
-      </Banner>
-    )
-  }
+  // Hide during a live race — but keep the banner up for the 3 s green flash
+  // even if isLive flips true the moment the timer hits zero.
+  if (!flashing && isLive) return null
+  if (!next || !cd)        return null
 
-  if (status.phase === 'active' && status.current) {
-    const r = status.current
-    return (
-      <Banner accent="hsl(var(--pit))">
-        <span className="dot-blink-slow text-pit">●</span>
-        <span className="disp font-bold tracking-[1.5px] text-pit text-[11px] uppercase">
-          RECONNECTING · R{r.round} {r.countryFlag} {r.name}
-        </span>
-        <span className="mono text-[10px] text-fg3">{r.circuit} · {r.duration}</span>
-      </Banner>
-    )
-  }
+  const pad = (n: number) => String(n).padStart(2, '0')
 
-  if (status.phase === 'post_season') {
-    return <Banner>🏁 2026 WEC 시즌 종료</Banner>
-  }
+  const accent = flashing ? 'hsl(var(--lmgt3))' : 'hsl(var(--accent))'
+  const numCol = flashing ? 'hsl(var(--lmgt3))' : 'hsl(var(--fg0))'
 
-  const { next, current, daysUntilNext, phase } = status
-
-  if (phase === 'post_race' && current) {
-    return (
-      <Banner accent="hsl(var(--pit))">
-        <span className="disp font-bold tracking-[1.5px] text-pit text-[11px] uppercase">
-          R{current.round} {current.name} FINISHED
-        </span>
-        {next && daysUntilNext !== null && (
-          <span className="mono text-[10px] text-fg3">
-            NEXT · R{next.round} {next.countryFlag} {next.name} ({formatDaysUntil(daysUntilNext)})
-          </span>
-        )}
-        {mounted && countdown && countdown.totalMs > 0 && (
-          <CountdownBadge countdown={countdown} />
-        )}
-      </Banner>
-    )
-  }
-
-  if (!next) return null
-
-  const underOneHour = mounted && countdown !== null && countdown.totalMs > 0 && countdown.totalMs < 3_600_000
-
-  if (phase === 'race_week') {
-    return (
-      <Banner accent="hsl(var(--live))">
-        <span className="disp font-bold tracking-[1.5px] text-live text-[11px] uppercase dot-blink-slow">
-          ● RACE WEEK
-        </span>
-        <span className="text-fg0 font-semibold text-[12px]">
-          R{next.round} {next.countryFlag} {next.name}
-        </span>
-        <span className="mono text-[10px] text-fg3">
-          {next.circuit} · {next.duration} ·{' '}
-          {new Date(next.raceStart).toLocaleDateString('ko-KR', {
-            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC',
-          })} UTC
-        </span>
-        {mounted && countdown && countdown.totalMs > 0 && (
-          <span className="ml-auto whitespace-nowrap mono text-[11px] font-bold text-live bg-live-bg border border-live-border px-2 py-0.5">
-            {underOneHour
-              ? `STARTS IN ${formatCountdown(countdown, 'hms')}`
-              : formatCountdown(countdown)}
-          </span>
-        )}
-      </Banner>
-    )
-  }
-
-  return (
-    <Banner>
-      <span className="disp font-bold tracking-[1.5px] text-fg3 text-[11px] uppercase">
-        NEXT ROUND
-      </span>
-      <span className="text-fg0 font-semibold text-[12px]">
-        R{next.round} {next.countryFlag} {next.name}
-      </span>
-      <span className="mono text-[10px] text-fg3">
-        {next.circuit} · {next.duration} ·{' '}
-        {new Date(next.raceStart).toLocaleDateString('ko-KR', {
-          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC',
-        })} UTC
-      </span>
-      {mounted && countdown && countdown.totalMs > 0 && (
-        <CountdownBadge countdown={countdown} />
-      )}
-    </Banner>
-  )
-}
-
-function CountdownBadge({ countdown }: { countdown: Countdown }) {
-  return (
-    <span className="ml-auto whitespace-nowrap mono text-[11px] text-fg0 bg-bg2 border border-line2 px-2 py-0.5">
-      {formatCountdown(countdown)}
-    </span>
-  )
-}
-
-function Banner({
-  accent,
-  children,
-}: {
-  accent?:   string
-  children:  React.ReactNode
-}) {
   return (
     <div
-      className={cn('flex flex-wrap items-center gap-3 px-6 py-2.5 bg-bg1 border border-line1')}
-      style={accent ? { borderLeft: `3px solid ${accent}` } : undefined}
+      className="flex flex-col items-center justify-center gap-2.5 px-6 py-4 border-b-2 transition-colors duration-500"
+      style={{
+        background:        flashing ? 'hsl(var(--lmgt3) / 0.16)' : 'hsl(var(--bg1))',
+        borderBottomColor: accent,
+      }}
     >
-      {children}
+      {/* Tag — small uppercase strip with NEXT label + short code */}
+      <div className="flex items-center gap-2.5 disp text-[11px] tracking-[2.5px] uppercase">
+        <span style={{ color: accent }} className="font-bold">
+          {flashing
+            ? '● STARTING NOW'
+            : next.kind === 'session' ? 'NEXT SESSION' : 'NEXT ROUND'}
+        </span>
+        <span className="text-fg4">/</span>
+        <span className="text-fg0 font-bold">{next.label}</span>
+      </div>
+
+      {/* Countdown — DD : HH : MM : SS */}
+      <div className="flex items-end gap-2 sm:gap-3">
+        <Unit value={pad(cd.d)} label="DAY"  color={numCol} />
+        <Colon color={numCol} />
+        <Unit value={pad(cd.h)} label="HOUR" color={numCol} />
+        <Colon color={numCol} />
+        <Unit value={pad(cd.m)} label="MIN"  color={numCol} />
+        <Colon color={numCol} />
+        <Unit value={pad(cd.s)} label="SEC"  color={numCol} />
+      </div>
+
+      {/* Subline — full session/round name */}
+      <span className="mono text-[11px] text-fg3 text-center truncate max-w-full">
+        {next.sublabel}
+      </span>
     </div>
+  )
+}
+
+function Unit({ value, label, color }: { value: string; label: string; color: string }) {
+  return (
+    <div className="flex flex-col items-center min-w-[68px]">
+      <span
+        className="mono text-[52px] font-bold leading-none tabular-nums"
+        style={{ color }}
+      >
+        {value}
+      </span>
+      <span className="disp text-[9px] tracking-[2px] text-fg3 mt-2 uppercase">{label}</span>
+    </div>
+  )
+}
+
+function Colon({ color }: { color: string }) {
+  return (
+    <span
+      className="mono text-[52px] font-bold leading-none -translate-y-[14px]"
+      style={{ color }}
+    >
+      :
+    </span>
   )
 }

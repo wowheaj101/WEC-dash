@@ -13,7 +13,19 @@ interface Props {
   showingPrevious?: boolean
 }
 
-export default function Header({ info, stats, isLive, showingPrevious = false }: Props) {
+function weatherIcon(condition: string | undefined): string {
+  switch (condition) {
+    case 'sunny':  return '☀️'
+    case 'cloudy': return '⛅'
+    case 'rainy':  return '🌧️'
+    case 'foggy':  return '🌫️'
+    case 'snowy':  return '❄️'
+    case 'stormy': return '⛈️'
+    default:       return '☁️'
+  }
+}
+
+export default function Header({ info, stats: _stats, isLive, showingPrevious = false }: Props) {
   const roundStatus = useMemo(() => getRoundStatus(CURRENT_SEASON), [])
 
   const weatherRound = isLive
@@ -33,29 +45,24 @@ export default function Header({ info, stats, isLive, showingPrevious = false }:
   const roundNum     = isLive ? info.round : (displayRound?.round ?? info.round)
   const countryLabel = displayRound?.country?.toUpperCase() ?? ''
   const flag         = displayRound?.countryFlag ?? ''
-  const air          = isLive ? info.weather.air      : (weather?.air      ?? null)
-  const track        = isLive ? info.weather.track    : (weather?.track    ?? null)
-  const humidity     = isLive ? info.weather.humidity : (weather?.humidity ?? null)
-
-  const elapsed = info.elapsed || '—'
-  const total   = info.total   || '—'
-
-  // live clock
-  const now = new Date()
-  const clock = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+  const air          = isLive ? info.weather.air       : (weather?.air       ?? null)
+  const track        = isLive ? info.weather.track     : (weather?.track     ?? null)
+  const humidity     = isLive ? info.weather.humidity  : (weather?.humidity  ?? null)
+  const condition    = isLive ? info.weather.condition : (weather?.condition ?? '')
+  const icon         = isLive ? weatherIcon(info.weather.condition) : (weather?.icon ?? weatherIcon(condition))
 
   const subline = isLive
-    ? (stats ? `RACE · LAP ${stats.leaderLap}` : 'RACE · LIVE')
+    ? 'LIVE · RACE'
     : showingPrevious
       ? 'PREVIOUS ROUND · FINAL RESULT'
       : displayRound?.duration ? `DURATION · ${displayRound.duration}` : '—'
 
   return (
     <div className="relative flex h-[80px] bg-bg0 border-b-2 border-accent">
-      {/* Red hero chevron */}
+      {/* Red hero chevron — content-sized, caps at 70% so weather stays visible */}
       <div
-        className="flex items-center text-white clip-chev-hero pr-11 pl-6 min-w-0"
-        style={{ width: 420, background: 'hsl(var(--accent))' }}
+        className="flex items-center text-white clip-chev-hero pr-11 pl-6 shrink-0 max-w-[70%]"
+        style={{ background: 'hsl(var(--accent))' }}
       >
         <div className="min-w-0">
           <div className="disp font-bold tracking-[3.5px] text-[11px] opacity-90 uppercase truncate">
@@ -70,39 +77,24 @@ export default function Header({ info, stats, isLive, showingPrevious = false }:
         </div>
       </div>
 
-      {/* Right: inline stats */}
-      <div className="flex items-center gap-5 flex-1 px-6 overflow-hidden">
-        <Stat label="ELAPSED" big={elapsed} sub={`of ${total}`} />
-        <Sep />
+      {/* Right: weather only (track temp + air/condition) */}
+      <div className="flex items-center gap-5 flex-1 px-6 overflow-hidden justify-end">
         <Stat
-          label="FASTEST"
-          big={stats?.fastestLap.time ? <span className="text-fastest">{stats.fastestLap.time}</span> : '—'}
-          sub={stats?.fastestLap.carNum ? `#${stats.fastestLap.carNum} ${stats.fastestLap.team ?? ''}`.trim() : '—'}
-        />
-        <Sep />
-        <Stat
-          label="TEMP"
+          label="AIR"
           big={air != null ? `${air}°` : '—'}
-          sub={track != null ? `TRACK ${track}°` : humidity != null ? `HUM ${humidity}%` : '—'}
+          sub={
+            <span className="inline-flex items-center gap-1">
+              <span className="text-[12px] leading-none">{icon}</span>
+              <span className="truncate">{condition ? condition.toUpperCase() : '—'}</span>
+            </span>
+          }
         />
-
-        <div className="ml-auto flex flex-col items-end gap-1 shrink-0">
-          {isLive ? (
-            <span className="inline-flex items-center gap-2 px-3 py-[5px] bg-[hsl(var(--live-bg))] border border-[hsl(var(--live))] text-live">
-              <span className="dot-blink w-2 h-2 rounded-full bg-live shrink-0" />
-              <span className="disp font-bold text-[11px] tracking-[1.5px]">LIVE</span>
-            </span>
-          ) : showingPrevious ? (
-            <span className="inline-flex items-center gap-2 px-3 py-[5px] bg-bg2 border border-accent text-accent">
-              <span className="disp font-bold text-[11px] tracking-[1.5px]">PREVIOUS</span>
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-2 px-3 py-[5px] bg-bg2 border border-line2 text-fg2">
-              <span className="disp font-bold text-[11px] tracking-[1.5px]">{displayRound?.duration ?? '—'}</span>
-            </span>
-          )}
-          <div className="mono text-[10px] text-fg3">{clock}</div>
-        </div>
+        <Sep />
+        <Stat
+          label="TRACK"
+          big={track != null ? `${track}°` : '—'}
+          sub={humidity != null ? `HUM ${humidity}%` : '—'}
+        />
       </div>
     </div>
   )

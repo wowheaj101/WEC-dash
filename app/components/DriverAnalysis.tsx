@@ -40,9 +40,9 @@ export default function DriverAnalysis({ driverStats }: Props) {
       {/* Sector best cards */}
       <div className="grid grid-cols-3 gap-2">
         {[
-          { label:'SECTOR 1 BEST', time:sbS1.s1, carNum:sbS1.carNum, team:sbS1.team },
-          { label:'SECTOR 2 BEST', time:sbS2.s2, carNum:sbS2.carNum, team:sbS2.team },
-          { label:'SECTOR 3 BEST', time:sbS3.s3, carNum:sbS3.carNum, team:sbS3.team },
+          { label:'SECTOR 1 BEST', time:sbS1.s1, carNum:sbS1.carNumStr, team:sbS1.team },
+          { label:'SECTOR 2 BEST', time:sbS2.s2, carNum:sbS2.carNumStr, team:sbS2.team },
+          { label:'SECTOR 3 BEST', time:sbS3.s3, carNum:sbS3.carNumStr, team:sbS3.team },
         ].map(({ label, time, carNum, team }) => (
           <div
             key={label}
@@ -82,14 +82,14 @@ export default function DriverAnalysis({ driverStats }: Props) {
                 const isClassBorder = prevClass !== null && d.carClass !== prevClass
                 return (
                   <div
-                    key={d.carNum}
+                    key={d.carNumStr}
                     className={cn(
                       'grid px-4 py-2.5 border-b border-line1 items-center',
                       isClassBorder && 'border-t-2 border-t-line3',
                     )}
                     style={{ gridTemplateColumns: '44px 80px minmax(140px,1fr) 90px 70px 70px 70px 90px' }}
                   >
-                    <span className="disp text-[16px] font-bold text-fg0">{d.carNum}</span>
+                    <span className="disp text-[16px] font-bold text-fg0">{d.carNumStr}</span>
                     <ClassBadge carClass={d.carClass} size={9} />
                     <div className="min-w-0">
                       <div className="text-[12px] text-fg0 truncate">{d.driver}</div>
@@ -124,8 +124,8 @@ export default function DriverAnalysis({ driverStats }: Props) {
                 const tooFew  = sec < MIN_SEC
                 const color   = tooMuch ? 'hsl(var(--danger))' : CLASS_COLOR[d.carClass]
                 return (
-                  <div key={d.carNum} className="flex items-center gap-2">
-                    <span className="disp text-[11px] text-fg2 w-7 text-right font-semibold">{d.carNum}</span>
+                  <div key={d.carNumStr} className="flex items-center gap-2">
+                    <span className="disp text-[11px] text-fg2 w-7 text-right font-semibold">{d.carNumStr}</span>
                     <div className="flex-1 h-3 bg-bg0 relative border border-line1">
                       <div
                         className="absolute top-0 bottom-0 w-px bg-line3 z-10"

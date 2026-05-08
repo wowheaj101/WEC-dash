@@ -24,11 +24,11 @@ function pitLabel(duration: string): string | null {
 }
 
 interface PitStop {
-  carNum:   number
-  carClass: string
-  lap:      number
-  stint:    number
-  duration: string
+  carNumStr: string
+  carClass:  string
+  lap:       number
+  stint:     number
+  duration:  string
 }
 
 function collectPitStops(carStints: CarStint[]): PitStop[] {
@@ -37,11 +37,11 @@ function collectPitStops(carStints: CarStint[]): PitStop[] {
     car.stints.forEach((stint, i) => {
       if (stint.pitDuration && stint.endLap !== null) {
         result.push({
-          carNum:   car.carNum,
-          carClass: car.carClass,
-          lap:      stint.endLap,
-          stint:    i + 1,
-          duration: stint.pitDuration,
+          carNumStr: car.carNumStr,
+          carClass:  car.carClass,
+          lap:       stint.endLap,
+          stint:     i + 1,
+          duration:  stint.pitDuration,
         })
       }
     })
@@ -93,7 +93,7 @@ export default function StintAnalysis({ carStints, totalLaps }: Props) {
                 style={{ gridTemplateColumns: '44px 86px 68px 60px 1fr' }}
               >
                 <span className="disp text-[14px] font-bold" style={{ color: CLASS_COLOR[p.carClass] }}>
-                  {p.carNum}
+                  {p.carNumStr}
                 </span>
                 <span className="disp text-[10px] font-bold tracking-[1.5px]" style={{ color: CLASS_COLOR[p.carClass] }}>
                   {p.carClass}

@@ -14,7 +14,7 @@
  */
 
 import type { GriiipParticipant } from './griiipClient'
-import type { Car, CarClass, Stats, Status } from '@/app/types/race'
+import type { Car, CarClass, Stats, Status, DriverStat } from '@/app/types/race'
 
 const API_ROOT      = '/api/griiip'
 const WEC_SERIES_ID = 10
@@ -153,6 +153,21 @@ function formatGap(ms: number, laps: number): string {
   return `+${(ms / 1000).toFixed(3)}`
 }
 
+function formatSector(ms: number | null | undefined): string {
+  if (!ms || ms <= 0) return '--'
+  const s   = Math.floor(ms / 1000)
+  const rem = ms % 1000
+  return `${s}.${String(rem).padStart(3, '0')}`
+}
+
+function formatDuration(ms: number): string {
+  if (!ms || ms <= 0) return '--:--:--'
+  const h = Math.floor(ms / 3600000)
+  const m = Math.floor((ms % 3600000) / 60000)
+  const s = Math.floor((ms % 60000) / 1000)
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
 // ── Build Cars from session results ──────────────────────────────
 
 interface InternalRow {
@@ -184,9 +199,10 @@ export function buildCarsFromResults(
       clsPos:       r.finishedAt        ?? 999,
       carClass:     mapClass(p.classId),
       carNum:       parseInt(p.carNumber) || 0,
+      carNumStr:    p.carNumber,
       team:         p.teamName,
       drivers:      p.drivers.map(d => d.threeLettersName).join(' / '),
-      tire:         'S',
+      tire:         '?',
       laps:         r.numberOfLapsCompleted,
       lastLap:      '--:--.---',  // not exposed in /results
       bestLap:      formatMs(r.bestLapTime),
@@ -225,6 +241,43 @@ export function buildCarsFromResults(
   })
 
   return rows.map(r => r.car).sort((a, b) => a.pos - b.pos)
+}
+
+export function buildDriverStatsFromResults(
+  results: ResultRow[],
+  participants: GriiipParticipant[],
+): DriverStat[] {
+  const pmap = new Map(participants.map(p => [p.id, p]))
+
+  // Find session-best lap time across all cars
+  let overallBest = Infinity
+  for (const r of results) {
+    if (r.bestLapTime > 0 && r.bestLapTime < overallBest) overallBest = r.bestLapTime
+  }
+
+  const stats: DriverStat[] = []
+  for (const r of results) {
+    const p = pmap.get(r.sessionParticipantId)
+    if (!p) continue
+
+    const primary = p.drivers[0]
+    stats.push({
+      carNum:        parseInt(p.carNumber) || 0,
+      carNumStr:     p.carNumber,
+      carClass:      mapClass(p.classId),
+      team:          p.teamName,
+      driver:        primary?.displayName || primary?.threeLettersName || p.threeLettersName,
+      bestLap:       formatMs(r.bestLapTime),
+      s1:            formatSector(r.bestSectorsMillis1),
+      s2:            formatSector(r.bestSectorsMillis2),
+      s3:            formatSector(r.bestSectorsMillis3),
+      totalTime:     formatDuration(r.totalLapTimes),
+      isSessionBest: r.bestLapTime > 0 && r.bestLapTime === overallBest,
+    })
+  }
+  return stats
+    .filter(d => d.carNum > 0 || d.carNumStr.length > 0)
+    .sort((a, b) => a.carNum - b.carNum)
 }
 
 export function buildStatsFromResults(

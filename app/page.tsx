@@ -68,6 +68,29 @@ function ConnBadge({ status, serviceName, reconnect }: {
   )
 }
 
+// ── Stint placeholder for past sessions ───────────────────────────
+// /results doesn't expose pit-in/out events, so stint timelines can't be
+// reconstructed for non-live, non-replay session views.
+
+function StintUnavailable({ compact = false }: { compact?: boolean }) {
+  return (
+    <div className={cn(
+      'panel flex flex-col items-center justify-center text-center',
+      compact ? 'py-6 px-4 gap-1' : 'py-16 px-8 gap-2',
+    )}>
+      <span className="section-label">STINT DATA UNAVAILABLE</span>
+      <p className={cn('mono text-fg3', compact ? 'text-[10px]' : 'text-[11px]')}>
+        STINT 데이터는 라이브 또는 리플레이 세션에서만 제공됩니다.
+      </p>
+      {!compact && (
+        <p className="mono text-[10px] text-fg4 mt-1">
+          상단 SESSION 막대에서 LIVE 를 선택하거나 Replay 탭을 사용하세요.
+        </p>
+      )}
+    </div>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────
 
 export default function Page() {
@@ -81,8 +104,7 @@ export default function Page() {
   const { event, sessions, loading: sessionsLoading } = useCurrentEvent()
   const [selectedSid, setSelectedSid] = useState<number | null>(null)
 
-  const isReplayMode      = replay.selectedMeta !== null && replay.current !== null
-  const isShowingPrevious = !isReplayMode && status === 'showing_previous'
+  const isReplayMode = replay.selectedMeta !== null && replay.current !== null
 
   // Most-recently-started session of the current event. Used as a fallback when
   // SignalR isn't live and the user hasn't picked a session — so the dashboard
@@ -114,6 +136,12 @@ export default function Page() {
   const isSessionView = restSid !== null
   const sessionResult = useSessionResults(restSid)
 
+  // Suppress the "PREVIOUS ROUND" badge/banner when we're actually displaying
+  // current-round data via the REST session view — the blob snapshot from the
+  // previous round is loaded into useTiming71 state but isn't on screen.
+  const isShowingPrevious =
+    !isReplayMode && !isSessionView && status === 'showing_previous'
+
   const displayCars =
     isReplayMode  ? replay.current!.cars :
     isSessionView ? sessionResult.cars   :
@@ -125,6 +153,19 @@ export default function Page() {
     isSessionView ? (sessionResult.stats ?? stats) :
                     stats
   const displayMessages = isReplayMode ? replay.current!.messages : messages
+  // Driver page uses session-derived stats when a non-live session is selected.
+  // /results exposes bestSectorsMillisN so DriverStat is fully derivable from REST.
+  // Replay reads from the snapshot when present (older snapshots predate #6-3).
+  const displayDriverStats =
+    isReplayMode  ? (replay.current!.driverStats ?? driverStats) :
+    isSessionView ? sessionResult.driverStats :
+                    driverStats
+
+  // Stint pages need pit-in/out events that /results doesn't expose. They are
+  // only meaningful in live mode or when a replay snapshot actually carries them.
+  const replayStints = isReplayMode ? replay.current!.carStints : undefined
+  const displayCarStints = isReplayMode ? (replayStints ?? []) : carStints
+  const stintsAvailable = isLive || (isReplayMode && (replayStints?.length ?? 0) > 0)
 
   const selectedSession = isSessionView
     ? sessions.find(s => s.id === restSid) ?? null
@@ -139,6 +180,11 @@ export default function Page() {
         isLive={isLive && !isReplayMode}
         showingPrevious={isShowingPrevious}
       />
+
+      {/* ── Countdown banner (below header) ── */}
+      {!isReplayMode && (
+        <RoundBanner isLive={isLive} sessions={sessions} />
+      )}
 
       {/* ── Tabs (broadcast bar) + connection badge ── */}
       <Tabs defaultValue="dashboard" className="flex flex-col">
@@ -156,9 +202,8 @@ export default function Page() {
           </div>
         </div>
 
-        {/* ── Flag strip + round banner ── */}
+        {/* ── Flag strip ── */}
         <FlagBanner flag={displayRaceInfo.flag} />
-        {!isReplayMode && <RoundBanner isLive={isLive} showingPrevious={isShowingPrevious} />}
 
         {/* ── Tab content ── */}
         <div className="flex-1 px-6 py-5 min-h-0">
@@ -215,7 +260,10 @@ export default function Page() {
                     <TrackMap cars={displayCars} compact isLive={isLive && !isReplayMode} />
                   </div>
                 </div>
-                <StintOverview carStints={carStints} cars={displayCars} leaderLap={displayStats.leaderLap} />
+                {stintsAvailable
+                  ? <StintOverview carStints={displayCarStints} cars={displayCars} leaderLap={displayStats.leaderLap} />
+                  : <StintUnavailable compact />
+                }
                 <MessageFeed messages={displayMessages} compact />
               </div>
             </div>
@@ -233,12 +281,15 @@ export default function Page() {
 
           {/* Tab 3: Driver Analysis */}
           <TabsContent value="drivers">
-            <DriverAnalysis driverStats={driverStats} />
+            <DriverAnalysis driverStats={displayDriverStats} />
           </TabsContent>
 
           {/* Tab 4: Stint Analysis */}
           <TabsContent value="stints">
-            <StintAnalysis carStints={carStints} totalLaps={displayStats.leaderLap} />
+            {stintsAvailable
+              ? <StintAnalysis carStints={displayCarStints} totalLaps={displayStats.leaderLap} />
+              : <StintUnavailable />
+            }
           </TabsContent>
 
           {/* Tab 5: Messages */}

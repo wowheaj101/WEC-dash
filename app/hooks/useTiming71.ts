@@ -155,6 +155,11 @@ export function useTiming71(): UseTiming71Result {
 
   const stintRef        = useRef<Map<number, StintEntry[]>>(new Map())
 
+  // pid → pit-in ts (ms) for the current open pit. Cleared on pit-out.
+  const pitInTsRef      = useRef<Map<number, number>>(new Map())
+  // pid → list of last-lap times (ms) for the current stint. Reset on pit-out.
+  const stintLapsRef    = useRef<Map<number, number[]>>(new Map())
+
   // Per-car sector timing (for TrackMap linear interpolation)
   //   sectorEnterTsRef: ts (ms) when the car last entered its current sector
   //   sectorDurationRef: rolling-average duration of each sector (s1/s2/s3)
@@ -162,10 +167,12 @@ export function useTiming71(): UseTiming71Result {
   const sectorDurationRef = useRef<Map<number, [number, number, number]>>(new Map())
 
   const clientRef       = useRef<GriiipClient | null>(null)
-  const latestRef       = useRef({ cars, raceInfo, stats, messages })
+  const latestRef       = useRef({ cars, raceInfo, stats, messages, carStints, driverStats })
   const snapshotIdxRef  = useRef(0)
 
-  useEffect(() => { latestRef.current = { cars, raceInfo, stats, messages } }, [cars, raceInfo, stats, messages])
+  useEffect(() => {
+    latestRef.current = { cars, raceInfo, stats, messages, carStints, driverStats }
+  }, [cars, raceInfo, stats, messages, carStints, driverStats])
 
   const isLive = status === 'live'
 
@@ -206,9 +213,10 @@ export function useTiming71(): UseTiming71Result {
           clsPos:       rank?.position        ?? 999,
           carClass:     mapClass(p.classId),
           carNum:       parseInt(p.carNumber) || 0,
+          carNumStr:    p.carNumber,
           team:         p.teamName,
           drivers:      p.drivers.map(d => d.threeLettersName).join(' / '),
-          tire:         'S',
+          tire:         '?',
           laps:         rank?.lapNumber ?? 0,
           lastLap:      formatMs(laps?.lastLapMs),
           bestLap:      formatMs(laps?.bestLapMs),
@@ -254,10 +262,11 @@ export function useTiming71(): UseTiming71Result {
   const buildCarStints = useCallback((): CarStint[] => {
     return Array.from(participantsRef.current.values())
       .map((p): CarStint => ({
-        carNum:   parseInt(p.carNumber) || 0,
-        carClass: mapClass(p.classId),
-        team:     p.teamName,
-        stints:   stintRef.current.get(p.id) ?? [{ startLap: 1, endLap: null, tire: 'S' }],
+        carNum:    parseInt(p.carNumber) || 0,
+        carNumStr: p.carNumber,
+        carClass:  mapClass(p.classId),
+        team:      p.teamName,
+        stints:    stintRef.current.get(p.id) ?? [{ startLap: 1, endLap: null, tire: '?' }],
       }))
       .filter(c => c.carNum > 0)
       .sort((a, b) => a.carNum - b.carNum)
@@ -284,6 +293,7 @@ export function useTiming71(): UseTiming71Result {
         const primaryDriver = p.drivers[0]
         return {
           carNum:        parseInt(p.carNumber) || 0,
+          carNumStr:     p.carNumber,
           carClass:      mapClass(p.classId),
           team:          p.teamName,
           driver:        primaryDriver?.displayName || primaryDriver?.threeLettersName || p.threeLettersName,
@@ -313,7 +323,7 @@ export function useTiming71(): UseTiming71Result {
     const currentCars = buildCars()
     const participantList = Array.from(participantsRef.current.values())
     currentCars.forEach(car => {
-      const pid = participantList.find(p => p.carNumber === String(car.carNum))?.id ?? 0
+      const pid = participantList.find(p => p.carNumber === car.carNumStr)?.id ?? 0
       const ls  = lapRef.current.get(pid)
       if (ls?.bestLapMs && ls.bestLapMs < fastestMs) {
         fastestMs  = ls.bestLapMs
@@ -359,7 +369,7 @@ export function useTiming71(): UseTiming71Result {
     if (!activeRound) return
 
     const saveSnapshot = async () => {
-      const { cars: c, raceInfo: r, stats: s, messages: m } = latestRef.current
+      const { cars: c, raceInfo: r, stats: s, messages: m, carStints: cs, driverStats: ds } = latestRef.current
       if (!c.length) return
       const payload: SnapshotPayload = {
         year:        new Date(activeRound.raceStart).getFullYear(),
@@ -369,12 +379,14 @@ export function useTiming71(): UseTiming71Result {
         countryFlag: activeRound.countryFlag,
         duration:    activeRound.duration,
         snapshot: {
-          idx:      snapshotIdxRef.current++,
-          ts:       Date.now(),
-          cars:     c,
-          raceInfo: r,
-          stats:    s,
-          messages: m.slice(-30),
+          idx:         snapshotIdxRef.current++,
+          ts:          Date.now(),
+          cars:        c,
+          raceInfo:    r,
+          stats:       s,
+          messages:    m.slice(-30),
+          carStints:   cs,
+          driverStats: ds,
         },
       }
       try {
@@ -403,6 +415,8 @@ export function useTiming71(): UseTiming71Result {
     lapRef.current          = new Map()
     pitCountRef.current     = new Map()
     stintRef.current        = new Map()
+    pitInTsRef.current      = new Map()
+    stintLapsRef.current    = new Map()
     sectorEnterTsRef.current  = new Map()
     sectorDurationRef.current = new Map()
     clockRef.current        = null
@@ -439,6 +453,8 @@ export function useTiming71(): UseTiming71Result {
           setRaceInfo(latest.raceInfo)
           setStats(latest.stats)
           setMessages(latest.messages)
+          if (latest.carStints?.length)   setCarStints(latest.carStints)
+          if (latest.driverStats?.length) setDriverStats(latest.driverStats)
         })
         .catch(() => { /* no saved data, start fresh */ })
     }
@@ -477,6 +493,8 @@ export function useTiming71(): UseTiming71Result {
             setRaceInfo(latest.raceInfo)
             setStats(latest.stats)
             setMessages(latest.messages)
+            if (latest.carStints?.length)   setCarStints(latest.carStints)
+            if (latest.driverStats?.length) setDriverStats(latest.driverStats)
             setStatus('showing_previous')
           })
           .catch(() => { /* keep dummy */ })
@@ -490,7 +508,7 @@ export function useTiming71(): UseTiming71Result {
       onParticipants: (participants) => {
         participantsRef.current = new Map(participants.map(p => [p.id, p]))
         for (const p of participants) {
-          stintRef.current.set(p.id, [{ startLap: 1, endLap: null, tire: 'S' }])
+          stintRef.current.set(p.id, [{ startLap: 1, endLap: null, tire: '?' }])
         }
       },
 
@@ -553,6 +571,14 @@ export function useTiming71(): UseTiming71Result {
           bestColor:  isSB ? 'sb' : (bestLapMs === item.lapTimeMillis ? 'pb' : prev.bestColor),
           inPit:      prev.inPit,
         })
+
+        // Track lap times for the current stint (drops invalid/in-pit laps).
+        // Used by onPitIn to compute avgLap when the stint closes.
+        if (item.isValid !== false && !item.isStartedInPit && !item.isEndedInPit && item.lapTimeMillis > 0) {
+          const buf = stintLapsRef.current.get(item.pid) ?? []
+          buf.push(item.lapTimeMillis)
+          stintLapsRef.current.set(item.pid, buf)
+        }
         flush()
       },
 
@@ -593,11 +619,22 @@ export function useTiming71(): UseTiming71Result {
         const ls = lapRef.current.get(item.pid)
         if (ls) lapRef.current.set(item.pid, { ...ls, inPit: true })
         pitCountRef.current.set(item.pid, (pitCountRef.current.get(item.pid) ?? 0) + 1)
+
+        // Close out the current stint: stamp endLap and compute avgLap from
+        // the laps accumulated during this stint, then reset the buffer.
         const stints = stintRef.current.get(item.pid) ?? []
         if (stints.length > 0 && stints[stints.length - 1].endLap === null) {
-          stints[stints.length - 1].endLap = item.lapNumber
+          const open = stints[stints.length - 1]
+          open.endLap = item.lapNumber
+          const buf = stintLapsRef.current.get(item.pid) ?? []
+          if (buf.length > 0) {
+            const avgMs = buf.reduce((a, b) => a + b, 0) / buf.length
+            open.avgLap = formatMs(avgMs)
+          }
+          stintLapsRef.current.set(item.pid, [])
         }
         stintRef.current.set(item.pid, stints)
+        pitInTsRef.current.set(item.pid, item.ts ? new Date(item.ts).getTime() : Date.now())
         flush()
 
         const participant = participantsRef.current.get(item.pid)
@@ -619,8 +656,20 @@ export function useTiming71(): UseTiming71Result {
       onPitOut: (item) => {
         const ls = lapRef.current.get(item.pid)
         if (ls) lapRef.current.set(item.pid, { ...ls, inPit: false })
+
+        // Compute pit duration from the matching pit-in ts and stamp it on
+        // the just-closed stint (the last stint with endLap !== null).
         const stints = stintRef.current.get(item.pid) ?? []
-        stints.push({ startLap: item.lapNumber + 1, endLap: null, tire: 'S' })
+        const inTs   = pitInTsRef.current.get(item.pid)
+        const outTs  = item.ts ? new Date(item.ts).getTime() : Date.now()
+        if (inTs && stints.length > 0) {
+          const closed = stints[stints.length - 1]
+          if (closed.endLap !== null) {
+            closed.pitDuration = ((outTs - inTs) / 1000).toFixed(1)
+          }
+          pitInTsRef.current.delete(item.pid)
+        }
+        stints.push({ startLap: item.lapNumber + 1, endLap: null, tire: '?' })
         stintRef.current.set(item.pid, stints)
         flush()
 

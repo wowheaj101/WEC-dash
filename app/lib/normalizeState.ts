@@ -159,6 +159,7 @@ export function normalizeCars(rawCars: RawCell[][], colMap: ColMap): Car[] {
       clsPos,
       carClass:    mapClass(rawVal(g('Class'))),
       carNum,
+      carNumStr:   carNumRaw || String(carNum),
       team:        rawVal(g('Team') ?? g('TeamName')) || `Car #${carNum}`,
       drivers:     rawVal(g('Driver') ?? g('CurrentDriver')) || '—',
       tire:        mapTire(rawVal(g('Tyre') ?? g('Tire'))),

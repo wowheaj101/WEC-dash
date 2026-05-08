@@ -1,6 +1,6 @@
 export type CarClass  = 'HYPERCAR' | 'LMP2' | 'LMGT3'
 export type Status    = 'RUN' | 'PIT' | 'OUT' | 'OFF' | 'STOP'
-export type Tire      = 'S' | 'M' | 'H' | 'W' | 'I'
+export type Tire      = 'S' | 'M' | 'H' | 'W' | 'I' | '?'
 export type FlagStatus = 'GREEN' | 'YELLOW' | 'SC' | 'RED'
 
 export interface Car {
@@ -8,6 +8,8 @@ export interface Car {
   clsPos:        number
   carClass:      CarClass
   carNum:        number
+  /** Original car number string preserving leading zeros (e.g. "007" vs "7"). Use as React key. */
+  carNumStr:     string
   team:          string
   drivers:       string
   tire:          Tire
@@ -57,6 +59,7 @@ export interface Message {
 
 export interface DriverStat {
   carNum:        number
+  carNumStr:     string
   carClass:      CarClass
   team:          string
   driver:        string
@@ -77,8 +80,9 @@ export interface StintEntry {
 }
 
 export interface CarStint {
-  carNum:   number
-  carClass: CarClass
-  team:     string
-  stints:   StintEntry[]
+  carNum:    number
+  carNumStr: string
+  carClass:  CarClass
+  team:      string
+  stints:    StintEntry[]
 }

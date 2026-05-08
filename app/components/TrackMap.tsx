@@ -74,7 +74,7 @@ export default function TrackMap({ cars, compact, circuitKey, isLive }: Props) {
     const now = Date.now()
     const visibleCars = cars.filter(c => c.status !== 'OUT')
     return layoutCars(circuit, visibleCars.map(c => ({
-      key:              c.carNum,
+      key:              c.carNumStr,
       classPos:         c.clsPos,
       sectorNum:        c.sectorNum,
       isPit:            c.status === 'PIT',
@@ -176,7 +176,7 @@ export default function TrackMap({ cars, compact, circuitKey, isLive }: Props) {
         {isLive && cars
           .filter(c => c.status !== 'OUT')
           .map(car => {
-            const pos = posByKey.get(car.carNum)
+            const pos = posByKey.get(car.carNumStr)
             if (!pos) return null
             const [x, y] = pos
             const color    = CLASS_COLOR[car.carClass]
@@ -184,7 +184,7 @@ export default function TrackMap({ cars, compact, circuitKey, isLive }: Props) {
             const dotColor = isPit ? 'hsl(42 100% 50%)' : color
 
             return (
-              <g key={car.carNum}
+              <g key={car.carNumStr}
                 style={{ transition: 'transform 200ms ease-out' }}>
                 <circle cx={x} cy={y} r={dotRadius + 3}
                   fill={dotColor} opacity="0.18"
@@ -199,7 +199,7 @@ export default function TrackMap({ cars, compact, circuitKey, isLive }: Props) {
                     className="mono"
                     style={{ transition: 'x 200ms ease-out, y 200ms ease-out' }}
                   >
-                    {car.carNum}
+                    {car.carNumStr}
                   </text>
                 )}
               </g>

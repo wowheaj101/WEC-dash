@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { Car, Stats } from '@/app/types/race'
+import type { Car, Stats, DriverStat } from '@/app/types/race'
 import {
   fetchSeriesEvents,
   fetchEventSessions,
@@ -10,6 +10,7 @@ import {
   findCurrentEvent,
   buildCarsFromResults,
   buildStatsFromResults,
+  buildDriverStatsFromResults,
   type EventMeta,
   type SessionMeta,
 } from '@/app/lib/griiipResults'
@@ -67,10 +68,11 @@ export function useCurrentEvent(): UseCurrentEventResult {
 // ── Session-results hook ─────────────────────────────────────────
 
 export interface UseSessionResultsResult {
-  cars:    Car[]
-  stats:   Stats | null
-  loading: boolean
-  error:   string | null
+  cars:        Car[]
+  stats:       Stats | null
+  driverStats: DriverStat[]
+  loading:     boolean
+  error:       string | null
 }
 
 /**
@@ -80,16 +82,21 @@ export interface UseSessionResultsResult {
  * even for in-progress sessions.
  */
 export function useSessionResults(sid: number | null): UseSessionResultsResult {
-  const [cars,    setCars]    = useState<Car[]>([])
-  const [stats,   setStats]   = useState<Stats | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error,   setError]   = useState<string | null>(null)
+  const [cars,        setCars]        = useState<Car[]>([])
+  const [stats,       setStats]       = useState<Stats | null>(null)
+  const [driverStats, setDriverStats] = useState<DriverStat[]>([])
+  const [loading,     setLoading]     = useState(false)
+  const [error,       setError]       = useState<string | null>(null)
 
   useEffect(() => {
     if (sid == null) {
-      setCars([]); setStats(null); setLoading(false); setError(null)
+      setCars([]); setStats(null); setDriverStats([]); setLoading(false); setError(null)
       return
     }
+
+    // Drop the previous session's rows immediately so they don't linger at the
+    // top of the leaderboard while the new fetch is in flight.
+    setCars([]); setStats(null); setDriverStats([]); setError(null)
 
     let cancelled = false
 
@@ -102,6 +109,7 @@ export function useSessionResults(sid: number | null): UseSessionResultsResult {
         if (cancelled) return
         setCars(buildCarsFromResults(resp.results, participants))
         setStats(buildStatsFromResults(resp.results, participants))
+        setDriverStats(buildDriverStatsFromResults(resp.results, participants))
         setError(null)
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e))
@@ -116,5 +124,5 @@ export function useSessionResults(sid: number | null): UseSessionResultsResult {
     return () => { cancelled = true; clearInterval(t) }
   }, [sid])
 
-  return { cars, stats, loading, error }
+  return { cars, stats, driverStats, loading, error }
 }

@@ -24,21 +24,21 @@ export default function StintOverview({ carStints, cars, leaderLap }: Props) {
         {carStints.map(cs => {
           const lastStint = cs.stints[cs.stints.length - 1]
           const pitCount  = cs.stints.length - 1
-          const car       = cars.find(c => c.carNum === cs.carNum)
+          const car       = cars.find(c => c.carNumStr === cs.carNumStr)
           const stintLaps = lastStint.endLap !== null
             ? lastStint.endLap - lastStint.startLap + 1
             : leaderLap - lastStint.startLap + 1
 
           return (
             <div
-              key={cs.carNum}
+              key={cs.carNumStr}
               className={cn(
                 'flex items-center gap-2 px-3 py-2 border-b border-line1',
                 car?.status === 'PIT' && 'bg-[hsl(var(--pit-bg))]',
               )}
             >
               <span className={cn('disp text-[14px] font-bold w-7 text-right', CLS_TEXT[cs.carClass])}>
-                {cs.carNum}
+                {cs.carNumStr}
               </span>
               <TireBadge tire={lastStint.tire} laps={stintLaps} />
               <span className="mono text-[10px] text-fg3 ml-auto">PIT×{pitCount}</span>

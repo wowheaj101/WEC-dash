@@ -21,10 +21,10 @@ export default function Leaderboard({ cars }: { cars: Car[] }) {
     ? cars
     : cars.filter(c => c.carClass === FILTER_MATCH[filter])
 
-  const classBorderNums = new Set<number>()
+  const classBorderNums = new Set<string>()
   filtered.forEach((car, i) => {
     if (i > 0 && car.carClass !== filtered[i - 1].carClass) {
-      classBorderNums.add(car.carNum)
+      classBorderNums.add(car.carNumStr)
     }
   })
 
@@ -55,9 +55,9 @@ export default function Leaderboard({ cars }: { cars: Car[] }) {
         <div className="flex flex-col p-2 min-w-[820px]">
           {filtered.map(car => (
             <LeaderboardRow
-              key={car.carNum}
+              key={car.carNumStr}
               car={car}
-              isClassBorder={classBorderNums.has(car.carNum)}
+              isClassBorder={classBorderNums.has(car.carNumStr)}
             />
           ))}
           {filtered.length === 0 && (

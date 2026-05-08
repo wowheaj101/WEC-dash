@@ -67,7 +67,7 @@ export default function LeaderboardRow({ car, isClassBorder }: Props) {
 
       {/* Car number */}
       <div className="disp flex items-center justify-center font-black text-fg0 text-[24px]">
-        {car.carNum}
+        {car.carNumStr}
       </div>
 
       {/* Team / Driver */}

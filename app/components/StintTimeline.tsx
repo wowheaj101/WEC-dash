@@ -9,15 +9,16 @@ const CLASS_COLOR: Record<string, string> = {
 }
 
 const TIRE_COLOR: Record<Tire, { bg: string; text: string }> = {
-  S: { bg: '#ffd400',  text: '#000' },
-  M: { bg: '#f5f5f7',  text: '#000' },
-  H: { bg: '#ff2e2e',  text: '#fff' },
-  W: { bg: '#3a8cff',  text: '#fff' },
-  I: { bg: '#27d36b',  text: '#000' },
+  S:   { bg: '#ffd400', text: '#000' },
+  M:   { bg: '#f5f5f7', text: '#000' },
+  H:   { bg: '#ff2e2e', text: '#fff' },
+  W:   { bg: '#3a8cff', text: '#fff' },
+  I:   { bg: '#27d36b', text: '#000' },
+  '?': { bg: '#3a3f4a', text: '#9aa1ad' },
 }
 
 const TIRE_LABEL: Record<Tire, string> = {
-  S: 'Soft', M: 'Medium', H: 'Hard', W: 'Wet', I: 'Inter',
+  S: 'Soft', M: 'Medium', H: 'Hard', W: 'Wet', I: 'Inter', '?': 'Unknown',
 }
 
 interface Props {
@@ -60,11 +61,11 @@ export default function StintTimeline({ carStints, totalLaps }: Props) {
             {carStints.map(car => {
               const clsColor = CLASS_COLOR[car.carClass]
               return (
-                <div key={car.carNum} className="flex items-center">
+                <div key={car.carNumStr} className="flex items-center">
                   {/* Label */}
                   <div className="flex items-center gap-2 pr-3" style={{ width: 140, flexShrink: 0 }}>
                     <span className="disp text-[16px] font-bold text-fg0 text-right" style={{ minWidth: 28 }}>
-                      {car.carNum}
+                      {car.carNumStr}
                     </span>
                     <div className="min-w-0">
                       <div className="disp text-[9px] font-bold tracking-[1.2px]" style={{ color: clsColor }}>

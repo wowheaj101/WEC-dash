@@ -1,12 +1,15 @@
-import type { Car, RaceInfo, Stats, Message } from './race'
+import type { Car, RaceInfo, Stats, Message, CarStint, DriverStat } from './race'
 
 export interface RaceSnapshot {
-  idx:      number   // 순번
-  ts:       number   // Unix ms
-  cars:     Car[]
-  raceInfo: RaceInfo
-  stats:    Stats
-  messages: Message[]
+  idx:          number   // 순번
+  ts:           number   // Unix ms
+  cars:         Car[]
+  raceInfo:     RaceInfo
+  stats:        Stats
+  messages:     Message[]
+  /** Added in #6-3 (2026-05-09). Older snapshots may not include these — use `?? []` on read. */
+  carStints?:   CarStint[]
+  driverStats?: DriverStat[]
 }
 
 export interface RaceMeta {

@@ -9,6 +9,7 @@ const CONFIG: Record<Tire, { bg: string; text: string }> = {
   H: { bg: 'bg-hypercar',  text: 'text-white' },
   W: { bg: 'bg-lmp2',      text: 'text-white' },
   I: { bg: 'bg-lmgt3',     text: 'text-black' },
+  '?': { bg: 'bg-bg3',     text: 'text-fg3' },
 }
 
 export default function TireBadge({ tire, laps }: { tire: Tire; laps?: number | null }) {
