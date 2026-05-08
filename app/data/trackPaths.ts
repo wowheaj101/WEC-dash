@@ -193,7 +193,7 @@ const LE_MANS: CircuitSVG = {
   pitOut: [411, 60],
 }
 
-// ── Autodromo José Carlos Pace (Interlagos) ──────────────────────────
+// ── Interlagos (Autodromo José Carlos Pace, São Paulo) ───────────────
 const INTERLAGOS: CircuitSVG = {
   path: `M 276,52 Q 308,38 334,56
     L 348,82 Q 360,108 341,127
@@ -316,15 +316,37 @@ const BAHRAIN: CircuitSVG = {
   pitOut: [298, 48],
 }
 
+// ── Circuit of the Americas (COTA) — PLACEHOLDER ─────────────────────
+// Phase-2 task: extract real path from circuitPDF/CircuitOfTheAmericas.pdf.
+// Stylized oval kept here only so the COTA round doesn't silently fall back
+// to another track. Coordinates are approximate and NOT accurate to the
+// real layout (no T1 hill, no esses, no back straight kink).
+const COTA_PLACEHOLDER: CircuitSVG = {
+  path: `M 120,190 Q 120,90 240,90 L 360,90 Q 460,90 460,190
+    Q 460,290 360,290 L 240,290 Q 120,290 120,190 Z`,
+  pitLane: `M 200,86 L 320,86`,
+  sf:      [236, 82, 244, 98],
+  sectors: [
+    [380, 86, 380, 94],
+    [380, 286, 380, 294],
+  ],
+  sectorPoints: [[400, 110], [430, 240], [180, 240]],
+  corners: [
+    { n: 1,  x: 240, y: 90,  name: 'Tower (placeholder)' },
+  ],
+  pitIn:  [320, 90],
+  pitOut: [200, 90],
+}
+
 // ── Export map (keyed by WECRound.circuit) ────────────────────────────
+// Keys MUST match `circuit` strings in `app/data/calendar.ts` exactly.
 export const CIRCUIT_SVG: Record<string, CircuitSVG> = {
   'Lusail International Circuit':       LUSAIL,
   'Autodromo Enzo e Dino Ferrari':      IMOLA,
   'Circuit de Spa-Francorchamps':       SPA,
   'Circuit de la Sarthe':               LE_MANS,
-  'Autodromo José Carlos Pace':         INTERLAGOS,
+  'Interlagos Circuit':                 INTERLAGOS,
+  'Circuit of the Americas':            COTA_PLACEHOLDER,
   'Fuji Speedway':                      FUJI,
   'Bahrain International Circuit':      BAHRAIN,
 }
-
-export { SPA }

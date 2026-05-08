@@ -16,11 +16,12 @@ No test framework is configured.
 ```bash
 npm run push:races         # Upload race JSON files to Vercel Blob
 npm run import:timing71    # Import a timing71 recording into race format
+npm run import:griiip      # Import Griiip session results into race format
 ```
 
 ## Architecture
 
-**WEC Live Timing Dashboard** — Next.js 14 (App Router) + TypeScript + Tailwind CSS + shadcn/ui. Connects directly from the browser to Griiip's SignalR hub (the backend behind `livetiming.fiawec.com`). No custom backend server; deployment target is Vercel free tier.
+**WEC Live Timing Dashboard** — Next.js 14 (App Router) + TypeScript + Tailwind CSS + shadcn/ui. Connects directly from the browser to Griiip's SignalR hub (the backend behind `livetiming.fiawec.com`) for live timing, and to Griiip's REST API for completed/in-progress session results (FP1–Race). No custom backend server; deployment target is Vercel free tier.
 
 ### Data flow
 
@@ -48,12 +49,26 @@ Browser
 | `pit-in` | `lv-pit-in` | `{ pid, carNumber, classId, lapNumber, ts }` |
 | `pit-out` | `lv-pit-out` | `{ pid, carNumber, classId, lapNumber, ts }` |
 
+**Session results (non-live)** — same `/api/griiip/...` rewrite, REST-only (no SignalR):
+
+| Endpoint | Purpose |
+|---|---|
+| `/meta/series/${seriesId}/events` | All WEC events ever (use `seriesId = 10`) |
+| `/meta/events/${eventId}/sessions` | All sessions for one event weekend (FP1/FP2/FP3/Q-LMGT3/HP-LMGT3/Q-HYPERCAR/HP-HYPERCAR/Race) |
+| `/meta/sessions/${sid}/results` | Per-car final standings — also returns current snapshot for in-progress sessions, so polling works |
+| `/meta/sessions/${sid}/participants` | Same shape as live participants |
+
+`event.status` is unreliable (Griiip sometimes returns `"Live"` for past events) — discover the current event by `firstSessionStartTime`/`lastSessionEndTime` date range instead. `SessionMeta.isRunning` is also unreliable; use `startTime <= now` to decide if a session is selectable.
+
 ### Key files
 
 | File | Role |
 |---|---|
 | `app/lib/griiipClient.ts` | `GriiipClient` class — session discovery, participant loading, SignalR lifecycle, channel join/leave. Uses `@microsoft/signalr` via dynamic `import()` to stay SSR-safe. |
+| `app/lib/griiipResults.ts` | REST companion to `griiipClient`. Fetches events / sessions / `/results` / participants and converts result rows → `Car[]` + `Stats`. Handles class-relative interval computation (since `/results` only gives gap-to-leader). Includes `findCurrentEvent` (date-based) and `shortSessionLabel` for selector buttons (`FP3`, `Q · GT3`, `HP · HC`, `RACE`). |
 | `app/hooks/useTiming71.ts` | React hook that orchestrates `GriiipClient`. Maintains Map-based state (`rankRef`, `gapRef`, `lapRef`, `pitCountRef`). Flushes to React on every update. On connect, fetches last Blob snapshot to restore state and continue `snapshotIdxRef`. Falls back to `app/data/dummyData.ts` only when `status === 'no_service'`. Auto-reconnects after 30 s. |
+| `app/hooks/useSessionResults.ts` | Two hooks: `useCurrentEvent()` runs once on mount to discover the current/most-recent WEC event and list its sessions; `useSessionResults(sid \| null)` fetches `/results` + `/participants` for one session and re-polls every 30 s while sid is set, so in-progress sessions auto-update. |
+| `app/components/SessionSelector.tsx` | Toggle bar at the top of the dashboard tab. Shows `LIVE` plus one button per session whose `startTime <= now`. Hidden in replay mode. Sessions still in progress get a blinking yellow dot. |
 | `app/types/race.ts` | Single source of truth for UI types: `Car`, `RaceInfo`, `Stats`, `Message`, `DriverStat`, `CarStint`. `Car` has optional `lastColor`/`bestColor` (`'sb' \| 'pb'`) and `sectorNum` (current sector 1–3) from Griiip `ranks` channel. |
 | `app/data/trackPaths.ts` | SVG circuit outlines for all 7 WEC venues. `CircuitSVG` interface includes `path`, `pitLane`, `sf`, `sectors`, and `sectorPoints` — three `[x,y]` coords (one per sector) used by `TrackMap` for car dot placement. |
 | `app/components/TrackMap.tsx` | Renders SVG circuit + car dots. Car positions are sector-based: each car is placed near `circuit.sectorPoints[sectorNum-1]` and spread in a small grid when multiple cars share a sector. Works for all circuits (not Spa-only). Pit-lane cars cluster near the S/F line. |
@@ -70,7 +85,7 @@ Browser
 
 | Tab value | Label | Components rendered |
 |---|---|---|
-| `dashboard` | 대시보드 | `Leaderboard` + `TrackMap` (compact) + `StintOverview` + `MessageFeed` (compact) |
+| `dashboard` | 대시보드 | `SessionSelector` + `Leaderboard` + `TrackMap` (compact) + `StintOverview` + `MessageFeed` (compact) |
 | `trackmap` | 트랙맵 | `TrackMap` (full) |
 | `drivers` | 드라이버 분석 | `DriverAnalysis` |
 | `stints` | 스틴트 분석 | `StintAnalysis` |
@@ -78,6 +93,8 @@ Browser
 | `replay` | 📼 다시보기 | `ReplayBrowser` + `ReplayControls` + dashboard view |
 
 The replay tab shows `ReplayControls` inside the `dashboard` tab too when `isReplayMode` is true.
+
+`page.tsx` resolves `displayCars`/`displayStats` from three sources in priority order: replay mode → session-results view (when `selectedSid !== null`) → live (`useTiming71`). `displayMessages` always uses live/replay only — selecting a non-LIVE session does not swap the race-control feed.
 
 ### Griiip API quirks
 
@@ -91,6 +108,7 @@ The replay tab shows `ReplayControls` inside the `dashboard` tab too when `isRep
 - **No service**: if `/meta/sessions-schedule-live` returns no WEC session, `status === 'no_service'` and dummy data is shown. Initial state uses empty arrays — dummy data is injected only at this point.
 - **Snapshot restore on connect**: `startConnection()` fetches `/api/races/${year}/${round}` before connecting to SignalR. If a saved `RaceData` exists, the latest snapshot is restored immediately (cars, raceInfo, stats, messages) and `snapshotIdxRef` continues from `latest.idx + 1` to avoid overwriting prior snapshots on refresh.
 - **CORS**: All Griiip REST calls go through the `/api/griiip/:path*` Next.js rewrite (see `next.config.js`) to avoid CORS errors on Vercel. Never call `insights.griiip.com` directly from browser code.
+- **`/results` for non-live sessions**: returns full per-car standings (`overallFinishedAt`, `gapFromFirst`, `bestLapTime`, `bestSectorsMillis1/2/3`, `numberOfLapsCompleted`, `optimalLapTime`, `finishStatus`). Missing vs the live feed: `lastLap`, `pitstops`, `lastColor/bestColor` (only `bestColor='sb'` is set, on the session-best car). `interval` is not in the response — compute it as `gapFromFirst[i] - gapFromFirst[i-1]` within the same class, sorted by `finishedAt`.
 
 ### Design system
 

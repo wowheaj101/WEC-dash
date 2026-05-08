@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Car } from '@/app/types/race'
-import { CIRCUIT_SVG, SPA } from '@/app/data/trackPaths'
+import { CIRCUIT_SVG } from '@/app/data/trackPaths'
 import type { CircuitSVG } from '@/app/data/trackPaths'
 import { CURRENT_SEASON } from '@/app/data/calendar'
 import { getRoundStatus } from '@/app/lib/getRoundStatus'
@@ -34,9 +34,21 @@ export default function TrackMap({ cars, compact, circuitKey, isLive }: Props) {
     ?? (isLive ? roundStatus.current?.circuit : roundStatus.next?.circuit)
     ?? roundStatus.current?.circuit
 
-  const circuit: CircuitSVG =
-    (resolvedKey ? CIRCUIT_SVG[resolvedKey] : undefined) ?? SPA
-  const label = resolvedKey ?? 'Circuit de Spa-Francorchamps'
+  const circuit: CircuitSVG | undefined = resolvedKey ? CIRCUIT_SVG[resolvedKey] : undefined
+  const label = resolvedKey ?? '미정'
+
+  if (!circuit) {
+    return (
+      <div className="bg-bg1 border border-line1 rounded-sm flex flex-col items-center justify-center gap-1 text-fg3 text-[11px] mono"
+        style={{ padding: compact ? 8 : 12, minHeight: compact ? 170 : 320 }}>
+        <span className="section-label">트랙맵</span>
+        <span>레이아웃 미등록</span>
+        {resolvedKey && (
+          <span className="text-fg4 text-[9px]">{resolvedKey}</span>
+        )}
+      </div>
+    )
+  }
 
   // 16fps animation tick so dots advance between ranks updates (long-term: GPS)
   const [tick, setTick] = useState(0)

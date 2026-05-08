@@ -45,18 +45,62 @@
 
 ---
 
-## #3 트랙맵 SVG 제작 · 개선 ✅ 2026-04-25 (1차 완료)
+## #3 트랙맵 SVG 제작 · 개선
 
-**진행 상태**
+### 1차 ✅ 2026-04-25 (메타데이터 추가)
 - `CircuitSVG` 인터페이스에 `corners`, `drs`, `pitIn`, `pitOut` 필드 추가 완료.
 - 7개 서킷 전부에 코너 번호/이름, 오버테이크(DRS) 존, 피트 입/출구 좌표 추가.
 - `TrackMap.tsx` 렌더 순서 재정비: sector glow halos → sector dividers → track (glow+surface) → pit lane → DRS → corners → pitIn/Out → cars → S/F.
 - 섹터별 glow 컬러 토큰화 (S1 blue / S2 green / S3 red, `/ 0.14`).
 - 색상 전부 Pit Wall v3.0 토큰(HSL)으로 이관.
 
-**남은 과제 (2차 패스)**
-- SVG path 를 공식 레이아웃 기준으로 재작도 (현재는 기존 근사치 유지, 메타데이터만 추가).
-- 코너 좌표는 현재 경로에 맞춰 approximation — path 재작도 시 재조정 필요.
+### 2차 진단 (2026-05-08)
+
+**버그 3종이 동시에 존재 — `?? SPA` fallback 이 다른 두 버그를 가리고 있었음:**
+
+1. **키 불일치** (`trackPaths.ts` ↔ `calendar.ts`)
+   | Calendar `circuit` | trackPaths 키 | 결과 |
+   |---|---|---|
+   | `Interlagos Circuit` | `Autodromo José Carlos Pace` | ❌ 매치 실패 → Spa 표시 |
+   | `Circuit of the Americas` | (엔트리 없음) | ❌ 매치 실패 → Spa 표시 |
+
+2. **SVG path 가 실제 트랙과 다름** — 7개 모두 손으로 그린 근사. `circuitPDF/` 폴더에 공식 PDF 7개 보유 (Imola, Spa, LeMans, 상파울루, COTA, 후지, 바레인). **Qatar/Lusail PDF 없음**.
+
+3. **silent fallback** — `TrackMap.tsx:38` 의 `?? SPA` 가 매핑 누락을 조용히 Spa로 대체. 현재 라운드가 Spa인 동안에는 우연히 정상으로 보임.
+
+### Phase 1 — 매핑/fallback 버그 (PDF 작업 X) ✅ 2026-05-08
+- `trackPaths.ts` 의 Interlagos 키를 `Interlagos Circuit` 로 정정 (calendar 와 일치).
+- COTA placeholder 엔트리 추가 (정식 PDF 추출 전 임시).
+- `TrackMap.tsx:38` 의 `?? SPA` fallback 제거 → 매핑 실패 시 "트랙 미등록" 메시지로 노출.
+
+### Phase 2 — PDF → SVG 추출 (라운드별)
+
+**변환 방식 비교**
+| 방식 | 장점 | 단점 |
+|---|---|---|
+| **A. pdf2svg / Inkscape 추출 → 수동 cleanup** ← 추천 | 결과 깔끔, payload 작음, 다크 테마 색 자유 | PDF 1개당 5–10분 수작업 |
+| B. PDF → PNG 배경 깔기 | 즉시 적용 | 7×2MB ≈ 14MB, 흐릿함, 다크 테마 안 맞음 |
+| C. PDF.js 런타임 렌더 | 자동 | 라이브러리 추가, 색·스타일 못 바꿈 |
+
+**워크플로 (방식 A)**
+1. PDF 한 개씩 SVG 변환 (Inkscape Open → Save as SVG, 또는 `pdf2svg` CLI).
+2. 트랙 윤곽 path 노드 식별 (보통 가장 긴 stroked path 1개).
+3. SVGO 로 path 단순화 (좌표 자릿수 줄이기).
+4. viewBox 를 `0 0 480 380` 으로 변환 (스케일 + 오프셋).
+5. `trackPaths.ts` 의 해당 항목 path 교체.
+6. PDF 위 표시된 S/F·pit·sector 마커 보고 좌표 다시 입력.
+7. 코너 좌표/DRS/pitIn-pitOut 도 재배치.
+
+**우선순위 후보**
+- 다음 라운드(Spa) 부터 — 시즌 진행 중인 트랙
+- 임팩트 큰 트랙(Le Mans, Spa, Imola) 부터
+- 사용자 자주 보는 트랙 위주
+
+### Phase 3 — Qatar/Lusail
+PDF 없음. 옵션:
+- 공식 FIA/Lusail 사이트에서 PDF 입수
+- 위키미디어 SVG 트랙맵 사용 (CC-BY 라이센스 대부분)
+- placeholder 유지
 
 ---
 
