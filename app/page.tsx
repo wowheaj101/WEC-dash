@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Header          from '@/app/components/Header'
 import FlagBanner      from '@/app/components/FlagBanner'
 import StatsBar        from '@/app/components/StatsBar'
@@ -13,11 +14,13 @@ import StintAnalysis   from '@/app/components/StintAnalysis'
 import RoundBanner     from '@/app/components/RoundBanner'
 import ReplayBrowser   from '@/app/components/ReplayBrowser'
 import ReplayControls  from '@/app/components/ReplayControls'
+import SessionSelector from '@/app/components/SessionSelector'
 import Ticker          from '@/app/components/Ticker'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs'
 import { cn }          from '@/app/lib/utils'
 import { useTiming71, type ConnStatus } from '@/app/hooks/useTiming71'
 import { useReplay }   from '@/app/hooks/useReplay'
+import { useCurrentEvent, useSessionResults } from '@/app/hooks/useSessionResults'
 
 // ── Connection status badge (broadcast look) ──────────────────────
 
@@ -75,12 +78,31 @@ export default function Page() {
 
   const replay = useReplay()
 
+  const { event, sessions, loading: sessionsLoading } = useCurrentEvent()
+  const [selectedSid, setSelectedSid] = useState<number | null>(null)
+
   const isReplayMode      = replay.selectedMeta !== null && replay.current !== null
   const isShowingPrevious = !isReplayMode && status === 'showing_previous'
-  const displayCars     = isReplayMode ? replay.current!.cars     : cars
+  const isSessionView     = !isReplayMode && selectedSid !== null
+
+  // Only fetch session data when a session is selected and not in replay mode.
+  const sessionResult = useSessionResults(isSessionView ? selectedSid : null)
+
+  const displayCars =
+    isReplayMode  ? replay.current!.cars :
+    isSessionView ? sessionResult.cars   :
+                    cars
+
   const displayRaceInfo = isReplayMode ? replay.current!.raceInfo : raceInfo
-  const displayStats    = isReplayMode ? replay.current!.stats    : stats
+  const displayStats =
+    isReplayMode  ? replay.current!.stats :
+    isSessionView ? (sessionResult.stats ?? stats) :
+                    stats
   const displayMessages = isReplayMode ? replay.current!.messages : messages
+
+  const selectedSession = selectedSid != null
+    ? sessions.find(s => s.id === selectedSid) ?? null
+    : null
 
   return (
     <div className="min-h-screen bg-bg0 text-fg1 flex flex-col">
@@ -127,6 +149,31 @@ export default function Page() {
                 onPause={replay.pause}
                 onClose={replay.clearRace}
               />
+            )}
+            {!isReplayMode && (
+              <SessionSelector
+                event={event}
+                sessions={sessions}
+                selectedSid={selectedSid}
+                onSelect={setSelectedSid}
+                loading={sessionsLoading}
+                isLive={isLive}
+              />
+            )}
+            {isSessionView && selectedSession && (
+              <div className="panel flex items-center gap-3 px-3 py-2 text-[11px]">
+                <span className="section-label">VIEWING</span>
+                <span className="disp tracking-[1px] text-fg0">{selectedSession.name}</span>
+                {sessionResult.loading && (
+                  <span className="mono text-[10px] text-fg3">loading…</span>
+                )}
+                {sessionResult.error && (
+                  <span className="mono text-[10px] text-danger">{sessionResult.error}</span>
+                )}
+                <span className="mono text-[10px] text-fg3 ml-auto">
+                  {new Date(selectedSession.startTime).toLocaleString('ko-KR')}
+                </span>
+              </div>
             )}
             <StatsBar stats={displayStats} />
             <div className="grid gap-3" style={{ gridTemplateColumns: 'minmax(0,1fr) 420px' }}>
