@@ -9,7 +9,8 @@
     "lint": "next lint",
     "import:timing71": "tsx scripts/import-timing71-recording.ts",
     "import:griiip": "tsx scripts/import-griiip-results.ts",
-    "push:races": "tsx --env-file=.env.local scripts/push-races-to-blob.ts"
+    "push:races": "tsx --env-file=.env.local scripts/push-races-to-blob.ts",
+    "extract:tracks": "tsx scripts/extract-tracks.ts"
   },
   "dependencies": {
     "@microsoft/signalr": "^10.0.0",

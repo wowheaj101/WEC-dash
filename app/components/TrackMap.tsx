@@ -30,9 +30,15 @@ interface Props {
 export default function TrackMap({ cars, compact, circuitKey, isLive }: Props) {
   const roundStatus = useMemo(() => getRoundStatus(CURRENT_SEASON), [])
 
+  // Match Header/RoundBanner: when the round weekend is active, show the
+  // current round's track even if the live SignalR feed isn't connected.
+  // Only fall back to `next` for race_week / upcoming / pre_season phases.
+  const phase = roundStatus.phase
+  const wantCurrent = isLive || phase === 'active' || phase === 'post_race' || phase === 'post_season'
   const resolvedKey = circuitKey
-    ?? (isLive ? roundStatus.current?.circuit : roundStatus.next?.circuit)
+    ?? (wantCurrent ? roundStatus.current?.circuit : roundStatus.next?.circuit)
     ?? roundStatus.current?.circuit
+    ?? roundStatus.next?.circuit
 
   const circuit: CircuitSVG | undefined = resolvedKey ? CIRCUIT_SVG[resolvedKey] : undefined
   const label = resolvedKey ?? '미정'

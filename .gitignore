@@ -11,3 +11,6 @@ node_modules/
 # Reference materials (not part of the app)
 *.pdf
 privious race data/
+
+# Extraction artifacts (regenerated from circuitPDF/ via scripts/extract-tracks.ts)
+tmp/

@@ -73,34 +73,38 @@
 - COTA placeholder 엔트리 추가 (정식 PDF 추출 전 임시).
 - `TrackMap.tsx:38` 의 `?? SPA` fallback 제거 → 매핑 실패 시 "트랙 미등록" 메시지로 노출.
 
-### Phase 2 — PDF → SVG 추출 (라운드별)
+### Phase 2 — 트랙 윤곽 추출 ✅ 2026-05-08 (PDF 시도 후 SVG로 pivot)
 
-**변환 방식 비교**
-| 방식 | 장점 | 단점 |
-|---|---|---|
-| **A. pdf2svg / Inkscape 추출 → 수동 cleanup** ← 추천 | 결과 깔끔, payload 작음, 다크 테마 색 자유 | PDF 1개당 5–10분 수작업 |
-| B. PDF → PNG 배경 깔기 | 즉시 적용 | 7×2MB ≈ 14MB, 흐릿함, 다크 테마 안 맞음 |
-| C. PDF.js 런타임 렌더 | 자동 | 라이브러리 추가, 색·스타일 못 바꿈 |
+**시도와 발견**
+- FIA 공식 PDF (`circuitPDF/`) 는 트랙을 **base64 PNG/JPEG 래스터 이미지**로 내장하고 있고 벡터 layer엔 텍스트 라벨밖에 없음 → pdf2svg 변환은 깨끗한 트랙 path 추출 불가.
+- Wikipedia Commons SVG (CC-BY) 가 single-line outline 으로 이미 정리돼 있어 pivot.
+- `trackSVG/` 에 7개 SVG (+1 PNG: Le Mans) 확보 — Lusail 까지 받아서 시즌 8라운드 모두 커버.
 
-**워크플로 (방식 A)**
-1. PDF 한 개씩 SVG 변환 (Inkscape Open → Save as SVG, 또는 `pdf2svg` CLI).
-2. 트랙 윤곽 path 노드 식별 (보통 가장 긴 stroked path 1개).
-3. SVGO 로 path 단순화 (좌표 자릿수 줄이기).
-4. viewBox 를 `0 0 480 380` 으로 변환 (스케일 + 오프셋).
-5. `trackPaths.ts` 의 해당 항목 path 교체.
-6. PDF 위 표시된 S/F·pit·sector 마커 보고 좌표 다시 입력.
-7. 코너 좌표/DRS/pitIn-pitOut 도 재배치.
+**파이프라인 (자동화)**
+1. `npm run extract:tracks` — `circuitPDF/*.pdf` → `tmp/extracted/*.svg` (Inkscape CLI)
+2. `npx tsx scripts/inspect-track-svgs.ts` — 각 소스 SVG의 visible path 인벤토리 (id, fill/stroke, d_chars)
+3. `npx tsx scripts/isolate-paths.ts` — top-N path 를 단독 SVG로 분리 → PNG 렌더로 트랙 윤곽 path 시각 식별
+4. `npx tsx scripts/normalize-tracks.ts` — 식별된 path 를 Inkscape `--export-id-only` 로 추출 + 자체 `transformPath` 로 viewBox `0 0 480 380` 정규화
+5. `npx tsx scripts/build-trackpaths.ts` — `tmp/normalized/_paths.json` → `trackPaths.ts` 형식의 TS 코드 생성
 
-**우선순위 후보**
-- 다음 라운드(Spa) 부터 — 시즌 진행 중인 트랙
-- 임팩트 큰 트랙(Le Mans, Spa, Imola) 부터
-- 사용자 자주 보는 트랙 위주
+**적용 결과 (`app/data/trackPaths.ts`)**
+- Spa, Imola, Bahrain, Fuji, Lusail, Interlagos, COTA → 위키 SVG 추출 path 적용 ✓
+- Le Mans → PNG 만 보유, 일단 손그림 placeholder 유지 (Phase 2.5 에서 bitmap-trace)
+- Qatar/Lusail PDF 부재 문제 → Phase 3 미발생 (Lusail SVG 확보로 해결됨)
 
-### Phase 3 — Qatar/Lusail
-PDF 없음. 옵션:
-- 공식 FIA/Lusail 사이트에서 PDF 입수
-- 위키미디어 SVG 트랙맵 사용 (CC-BY 라이센스 대부분)
-- placeholder 유지
+### Phase 2.5 — 마커 재배치 (남은 작업)
+
+`build-trackpaths.ts` 가 출력한 `sf` / `pitLane` / `sectors` / `sectorPoints` 는 bbox 기반 자동 placeholder 라서 실제 S/F·피트레인 위치와 일치하지 않음. 트랙별로 수작업 재배치 필요:
+
+- **S/F 라인** — 메인 스트레이트 위
+- **pitLane** — S/F 라인 옆 평행한 짧은 선
+- **sectors** — 공식 sector 분할 지점 2개 (보통 Wikipedia SVG 안에 노란/빨강 색 별도 path 로 표시돼 있음)
+- **sectorPoints** — 각 sector 안에서 차량 dot 가 모일 anchor 좌표
+- **corners / drs** — 비활성화됨 (재배치 필요시 PDF 참고해서 다시 입력)
+
+또한 **Le Mans** 는 PNG 만 있어서 bitmap trace 별도 처리:
+- `trackSVG/Circuit_de_la_Sarthe_v2.png` 를 Inkscape 열기 → `Path > Trace Bitmap` (Edge detection) → 단일 path 추출
+- 아니면 `pdftocairo -png -r 300 LeMans.pdf` 로 PDF→PNG 후 동일 작업
 
 ---
 
