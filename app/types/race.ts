@@ -64,11 +64,24 @@ export interface DriverStat {
   team:          string
   driver:        string
   bestLap:       string
+  bestLapMs:     number | null   // for sorting + chart
   s1:            string
   s2:            string
   s3:            string
+  /** Sum of best sectors. From REST `optimalLapTime`. Live: best-sector-sum if all 3 known. */
+  optimalLap:    string
+  optimalLapMs:  number | null
+  /** bestLap - optimalLap (ms). Positive = pace lost in best lap. null when missing. */
+  gapToOptimalMs: number | null
   totalTime:     string
   isSessionBest: boolean
+}
+
+export interface LapHistoryEntry {
+  lap:    number
+  ms:     number
+  /** false if invalid lap (Yellow/SC) or in/out lap. */
+  valid:  boolean
 }
 
 export interface StintEntry {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import type { Car, RaceInfo, Stats, Message, FlagStatus, CarClass, Status, CarStint, StintEntry, DriverStat } from '@/app/types/race'
+import type { Car, RaceInfo, Stats, Message, FlagStatus, CarClass, Status, CarStint, StintEntry, DriverStat, LapHistoryEntry } from '@/app/types/race'
 import { GriiipClient }      from '@/app/lib/griiipClient'
 import type {
   GriiipParticipant,
@@ -51,6 +51,8 @@ export interface UseTiming71Result {
   messages:    Message[]
   carStints:   CarStint[]
   driverStats: DriverStat[]
+  /** Per-car lap-time history for the Drivers chart. Keyed by carNumStr. */
+  lapHistory:  Record<string, LapHistoryEntry[]>
   isLive:      boolean
   reconnect:   () => void
 }
@@ -103,6 +105,11 @@ function formatDuration(ms: number): string {
   return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
+function formatSectorMs(ms: number | null): string {
+  if (ms === null || ms <= 0) return '--'
+  return (ms / 1000).toFixed(3)
+}
+
 // ── Internal state types ──────────────────────────────────────────
 
 interface LapState {
@@ -116,6 +123,8 @@ interface LapState {
 // ── Hook ──────────────────────────────────────────────────────────
 
 const SNAPSHOT_INTERVAL_MS = 120_000
+/** Cap lap-history entries per car so a 24 h race doesn't blow memory. */
+const MAX_LAP_HISTORY = 1000
 
 const EMPTY_RACE_INFO: RaceInfo = {
   name: '', round: 0,
@@ -139,6 +148,7 @@ export function useTiming71(): UseTiming71Result {
   const [messages,    setMessages]    = useState<Message[]>([])
   const [carStints,   setCarStints]   = useState<CarStint[]>([])
   const [driverStats, setDriverStats] = useState<DriverStat[]>([])
+  const [lapHistory,  setLapHistory]  = useState<Record<string, LapHistoryEntry[]>>({})
 
   // Internal live state (refs — no re-render on every tick)
   const participantsRef = useRef<Map<number, GriiipParticipant>>(new Map())
@@ -165,14 +175,20 @@ export function useTiming71(): UseTiming71Result {
   //   sectorDurationRef: rolling-average duration of each sector (s1/s2/s3)
   const sectorEnterTsRef  = useRef<Map<number, { sector: number; ts: number }>>(new Map())
   const sectorDurationRef = useRef<Map<number, [number, number, number]>>(new Map())
+  // Best sector time (ms) per car, used to derive optimal lap. null until first measurement.
+  const sectorBestRef     = useRef<Map<number, [number | null, number | null, number | null]>>(new Map())
+
+  // Per-car lap time history (for the lap-time evolution chart on Drivers page).
+  // Bounded to MAX_LAP_HISTORY entries per car so memory stays in check during 24 h races.
+  const lapHistoryRef     = useRef<Map<number, LapHistoryEntry[]>>(new Map())
 
   const clientRef       = useRef<GriiipClient | null>(null)
-  const latestRef       = useRef({ cars, raceInfo, stats, messages, carStints, driverStats })
+  const latestRef       = useRef({ cars, raceInfo, stats, messages, carStints, driverStats, lapHistory })
   const snapshotIdxRef  = useRef(0)
 
   useEffect(() => {
-    latestRef.current = { cars, raceInfo, stats, messages, carStints, driverStats }
-  }, [cars, raceInfo, stats, messages, carStints, driverStats])
+    latestRef.current = { cars, raceInfo, stats, messages, carStints, driverStats, lapHistory }
+  }, [cars, raceInfo, stats, messages, carStints, driverStats, lapHistory])
 
   const isLive = status === 'live'
 
@@ -287,21 +303,32 @@ export function useTiming71(): UseTiming71Result {
       .map((p): DriverStat => {
         const lapState = lapRef.current.get(p.id)
         const rankItem = rankRef.current.get(p.id)
-        const bestLap  = formatMs(lapState?.bestLapMs)
-        const isSessionBest = !!(lapState?.bestLapMs && lapState.bestLapMs === globalBestMs)
+        const bestMs   = lapState?.bestLapMs ?? null
+        const isSessionBest = !!(bestMs && bestMs === globalBestMs)
         const totalMs  = rankItem?.elapsedTimeMillis ?? 0
         const primaryDriver = p.drivers[0]
+
+        // Optimal lap = sum of best sectors (only if all 3 sectors have been measured)
+        const sb = sectorBestRef.current.get(p.id)
+        const allSectorsKnown = sb && sb[0] !== null && sb[1] !== null && sb[2] !== null
+        const optimalMs = allSectorsKnown ? (sb![0]! + sb![1]! + sb![2]!) : null
+        const gap = (bestMs && optimalMs && bestMs >= optimalMs) ? bestMs - optimalMs : null
+
         return {
-          carNum:        parseInt(p.carNumber) || 0,
-          carNumStr:     p.carNumber,
-          carClass:      mapClass(p.classId),
-          team:          p.teamName,
-          driver:        primaryDriver?.displayName || primaryDriver?.threeLettersName || p.threeLettersName,
-          bestLap,
-          s1:            '--',
-          s2:            '--',
-          s3:            '--',
-          totalTime:     formatDuration(totalMs),
+          carNum:         parseInt(p.carNumber) || 0,
+          carNumStr:      p.carNumber,
+          carClass:       mapClass(p.classId),
+          team:           p.teamName,
+          driver:         primaryDriver?.displayName || primaryDriver?.threeLettersName || p.threeLettersName,
+          bestLap:        formatMs(bestMs),
+          bestLapMs:      bestMs,
+          s1:             formatSectorMs(sb?.[0] ?? null),
+          s2:             formatSectorMs(sb?.[1] ?? null),
+          s3:             formatSectorMs(sb?.[2] ?? null),
+          optimalLap:     formatMs(optimalMs),
+          optimalLapMs:   optimalMs,
+          gapToOptimalMs: gap,
+          totalTime:      formatDuration(totalMs),
           isSessionBest,
         }
       })
@@ -346,19 +373,31 @@ export function useTiming71(): UseTiming71Result {
 
   // ── Flush all state to React ──────────────────────────────────
 
+  const buildLapHistory = useCallback((): Record<string, LapHistoryEntry[]> => {
+    const out: Record<string, LapHistoryEntry[]> = {}
+    Array.from(lapHistoryRef.current.entries()).forEach(([pid, hist]) => {
+      const p = participantsRef.current.get(pid)
+      if (!p || hist.length === 0) return
+      out[p.carNumber] = hist
+    })
+    return out
+  }, [])
+
   const flush = useCallback(() => {
     const newCars        = buildCars()
     const newRaceInfo    = buildRaceInfo()
     const newStats       = buildStats()
     const newCarStints   = buildCarStints()
     const newDriverStats = buildDriverStats()
+    const newLapHistory  = buildLapHistory()
     if (newCars.length > 0) setCars(newCars)
     setRaceInfo(newRaceInfo)
     setStats(newStats)
     if (newCarStints.length > 0)   setCarStints(newCarStints)
     if (newDriverStats.length > 0) setDriverStats(newDriverStats)
+    if (Object.keys(newLapHistory).length > 0) setLapHistory(newLapHistory)
     setStatus('live')
-  }, [buildCars, buildRaceInfo, buildStats, buildCarStints, buildDriverStats])
+  }, [buildCars, buildRaceInfo, buildStats, buildCarStints, buildDriverStats, buildLapHistory])
 
   // ── Snapshot auto-save ────────────────────────────────────────
 
@@ -369,7 +408,7 @@ export function useTiming71(): UseTiming71Result {
     if (!activeRound) return
 
     const saveSnapshot = async () => {
-      const { cars: c, raceInfo: r, stats: s, messages: m, carStints: cs, driverStats: ds } = latestRef.current
+      const { cars: c, raceInfo: r, stats: s, messages: m, carStints: cs, driverStats: ds, lapHistory: lh } = latestRef.current
       if (!c.length) return
       const payload: SnapshotPayload = {
         year:        new Date(activeRound.raceStart).getFullYear(),
@@ -387,6 +426,7 @@ export function useTiming71(): UseTiming71Result {
           messages:    m.slice(-30),
           carStints:   cs,
           driverStats: ds,
+          lapHistory:  lh,
         },
       }
       try {
@@ -419,6 +459,8 @@ export function useTiming71(): UseTiming71Result {
     stintLapsRef.current    = new Map()
     sectorEnterTsRef.current  = new Map()
     sectorDurationRef.current = new Map()
+    sectorBestRef.current     = new Map()
+    lapHistoryRef.current     = new Map()
     clockRef.current        = null
     scheduleRef.current     = null
     flagRef.current         = 'GREEN'
@@ -455,6 +497,7 @@ export function useTiming71(): UseTiming71Result {
           setMessages(latest.messages)
           if (latest.carStints?.length)   setCarStints(latest.carStints)
           if (latest.driverStats?.length) setDriverStats(latest.driverStats)
+          if (latest.lapHistory && Object.keys(latest.lapHistory).length > 0) setLapHistory(latest.lapHistory)
         })
         .catch(() => { /* no saved data, start fresh */ })
     }
@@ -495,6 +538,7 @@ export function useTiming71(): UseTiming71Result {
             setMessages(latest.messages)
             if (latest.carStints?.length)   setCarStints(latest.carStints)
             if (latest.driverStats?.length) setDriverStats(latest.driverStats)
+          if (latest.lapHistory && Object.keys(latest.lapHistory).length > 0) setLapHistory(latest.lapHistory)
             setStatus('showing_previous')
           })
           .catch(() => { /* keep dummy */ })
@@ -524,14 +568,22 @@ export function useTiming71(): UseTiming71Result {
             || prevEnter.sector !== item.sectorNumber
             || (prev && prev.lapNumber !== item.lapNumber)
           if (sectorChanged && item.sectorNumber) {
-            // Update rolling-average duration for the sector just exited
+            // Update rolling-average duration + per-car sector best for the sector just exited
             if (prevEnter && prevEnter.sector >= 1 && prevEnter.sector <= 3) {
               const elapsed = now - prevEnter.ts
               if (elapsed > 3_000 && elapsed < 600_000) {
+                const idx = prevEnter.sector - 1
                 const durs = sectorDurationRef.current.get(item.pid) ?? [0, 0, 0] as [number, number, number]
-                const idx  = prevEnter.sector - 1
                 durs[idx]  = durs[idx] === 0 ? elapsed : Math.round(durs[idx] * 0.7 + elapsed * 0.3)
                 sectorDurationRef.current.set(item.pid, durs)
+
+                if (item.isDeleted !== true) {
+                  const bests = sectorBestRef.current.get(item.pid) ?? [null, null, null] as [number | null, number | null, number | null]
+                  if (bests[idx] === null || elapsed < (bests[idx] as number)) {
+                    bests[idx] = elapsed
+                    sectorBestRef.current.set(item.pid, bests)
+                  }
+                }
               }
             }
             sectorEnterTsRef.current.set(item.pid, { sector: item.sectorNumber, ts: now })
@@ -574,10 +626,19 @@ export function useTiming71(): UseTiming71Result {
 
         // Track lap times for the current stint (drops invalid/in-pit laps).
         // Used by onPitIn to compute avgLap when the stint closes.
-        if (item.isValid !== false && !item.isStartedInPit && !item.isEndedInPit && item.lapTimeMillis > 0) {
+        const isCleanLap = item.isValid !== false && !item.isStartedInPit && !item.isEndedInPit && item.lapTimeMillis > 0
+        if (isCleanLap) {
           const buf = stintLapsRef.current.get(item.pid) ?? []
           buf.push(item.lapTimeMillis)
           stintLapsRef.current.set(item.pid, buf)
+        }
+
+        // Append to lap history for the chart on Drivers page.
+        if (item.lapTimeMillis > 0 && item.lapNumber > 0) {
+          const hist = lapHistoryRef.current.get(item.pid) ?? []
+          hist.push({ lap: item.lapNumber, ms: item.lapTimeMillis, valid: isCleanLap })
+          if (hist.length > MAX_LAP_HISTORY) hist.shift()
+          lapHistoryRef.current.set(item.pid, hist)
         }
         flush()
       },
@@ -707,5 +768,5 @@ export function useTiming71(): UseTiming71Result {
     return () => clearTimeout(t)
   }, [status, startConnection])
 
-  return { status, serviceName, liveSid, cars, raceInfo, stats, messages, carStints, driverStats, isLive, reconnect: startConnection }
+  return { status, serviceName, liveSid, cars, raceInfo, stats, messages, carStints, driverStats, lapHistory, isLive, reconnect: startConnection }
 }

@@ -96,7 +96,7 @@ function StintUnavailable({ compact = false }: { compact?: boolean }) {
 export default function Page() {
   const {
     status, serviceName, liveSid, reconnect,
-    cars, raceInfo, stats, messages, carStints, driverStats, isLive,
+    cars, raceInfo, stats, messages, carStints, driverStats, lapHistory, isLive,
   } = useTiming71()
 
   const replay = useReplay()
@@ -167,9 +167,48 @@ export default function Page() {
   const displayCarStints = isReplayMode ? (replayStints ?? []) : carStints
   const stintsAvailable = isLive || (isReplayMode && (replayStints?.length ?? 0) > 0)
 
+  // Lap-time history for the Drivers chart. /results doesn't include lap history,
+  // so REST session view falls back to empty (chart shows placeholder).
+  const displayLapHistory =
+    isReplayMode  ? (replay.current!.lapHistory ?? {}) :
+    isSessionView ? {} :
+                    lapHistory
+
   const selectedSession = isSessionView
     ? sessions.find(s => s.id === restSid) ?? null
     : null
+
+  // Reusable session-picker block — rendered above tab content on Dashboard
+  // and Drivers. State (selectedSid) is shared via page scope, so switching
+  // sessions in either tab updates both.
+  const sessionBar = !isReplayMode && (
+    <>
+      <SessionSelector
+        event={event}
+        sessions={sessions}
+        selectedSid={selectedSid}
+        onSelect={setSelectedSid}
+        loading={sessionsLoading}
+        isLive={isLive}
+        liveSid={liveSid}
+      />
+      {isSessionView && selectedSession && (
+        <div className="panel flex items-center gap-3 px-3 py-2 text-[11px]">
+          <span className="section-label">VIEWING</span>
+          <span className="disp tracking-[1px] text-fg0">{selectedSession.name}</span>
+          {sessionResult.loading && (
+            <span className="mono text-[10px] text-fg3">loading…</span>
+          )}
+          {sessionResult.error && (
+            <span className="mono text-[10px] text-danger">{sessionResult.error}</span>
+          )}
+          <span className="mono text-[10px] text-fg3 ml-auto">
+            {new Date(selectedSession.startTime).toLocaleString('ko-KR')}
+          </span>
+        </div>
+      )}
+    </>
+  )
 
   return (
     <div className="min-h-screen bg-bg0 text-fg1 flex flex-col">
@@ -221,32 +260,7 @@ export default function Page() {
                 onClose={replay.clearRace}
               />
             )}
-            {!isReplayMode && (
-              <SessionSelector
-                event={event}
-                sessions={sessions}
-                selectedSid={selectedSid}
-                onSelect={setSelectedSid}
-                loading={sessionsLoading}
-                isLive={isLive}
-                liveSid={liveSid}
-              />
-            )}
-            {isSessionView && selectedSession && (
-              <div className="panel flex items-center gap-3 px-3 py-2 text-[11px]">
-                <span className="section-label">VIEWING</span>
-                <span className="disp tracking-[1px] text-fg0">{selectedSession.name}</span>
-                {sessionResult.loading && (
-                  <span className="mono text-[10px] text-fg3">loading…</span>
-                )}
-                {sessionResult.error && (
-                  <span className="mono text-[10px] text-danger">{sessionResult.error}</span>
-                )}
-                <span className="mono text-[10px] text-fg3 ml-auto">
-                  {new Date(selectedSession.startTime).toLocaleString('ko-KR')}
-                </span>
-              </div>
-            )}
+            {sessionBar}
             <StatsBar stats={displayStats} />
             <div className="grid gap-3" style={{ gridTemplateColumns: 'minmax(0,1fr) 420px' }}>
               <div className="flex flex-col gap-3 min-w-0">
@@ -280,8 +294,9 @@ export default function Page() {
           </TabsContent>
 
           {/* Tab 3: Driver Analysis */}
-          <TabsContent value="drivers">
-            <DriverAnalysis driverStats={displayDriverStats} />
+          <TabsContent value="drivers" className="flex flex-col gap-3">
+            {sessionBar}
+            <DriverAnalysis driverStats={displayDriverStats} lapHistory={displayLapHistory} />
           </TabsContent>
 
           {/* Tab 4: Stint Analysis */}

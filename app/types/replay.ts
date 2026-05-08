@@ -1,4 +1,4 @@
-import type { Car, RaceInfo, Stats, Message, CarStint, DriverStat } from './race'
+import type { Car, RaceInfo, Stats, Message, CarStint, DriverStat, LapHistoryEntry } from './race'
 
 export interface RaceSnapshot {
   idx:          number   // 순번
@@ -10,6 +10,8 @@ export interface RaceSnapshot {
   /** Added in #6-3 (2026-05-09). Older snapshots may not include these — use `?? []` on read. */
   carStints?:   CarStint[]
   driverStats?: DriverStat[]
+  /** Added 2026-05-09 — per-car lap history for the lap-time chart. Keyed by carNumStr. */
+  lapHistory?:  Record<string, LapHistoryEntry[]>
 }
 
 export interface RaceMeta {

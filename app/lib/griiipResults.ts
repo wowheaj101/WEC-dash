@@ -261,18 +261,25 @@ export function buildDriverStatsFromResults(
     if (!p) continue
 
     const primary = p.drivers[0]
+    const bestMs    = r.bestLapTime > 0 ? r.bestLapTime    : null
+    const optimalMs = r.optimalLapTime > 0 ? r.optimalLapTime : null
+    const gap       = (bestMs && optimalMs && bestMs >= optimalMs) ? bestMs - optimalMs : null
     stats.push({
-      carNum:        parseInt(p.carNumber) || 0,
-      carNumStr:     p.carNumber,
-      carClass:      mapClass(p.classId),
-      team:          p.teamName,
-      driver:        primary?.displayName || primary?.threeLettersName || p.threeLettersName,
-      bestLap:       formatMs(r.bestLapTime),
-      s1:            formatSector(r.bestSectorsMillis1),
-      s2:            formatSector(r.bestSectorsMillis2),
-      s3:            formatSector(r.bestSectorsMillis3),
-      totalTime:     formatDuration(r.totalLapTimes),
-      isSessionBest: r.bestLapTime > 0 && r.bestLapTime === overallBest,
+      carNum:         parseInt(p.carNumber) || 0,
+      carNumStr:      p.carNumber,
+      carClass:       mapClass(p.classId),
+      team:           p.teamName,
+      driver:         primary?.displayName || primary?.threeLettersName || p.threeLettersName,
+      bestLap:        formatMs(bestMs),
+      bestLapMs:      bestMs,
+      s1:             formatSector(r.bestSectorsMillis1),
+      s2:             formatSector(r.bestSectorsMillis2),
+      s3:             formatSector(r.bestSectorsMillis3),
+      optimalLap:     formatMs(optimalMs),
+      optimalLapMs:   optimalMs,
+      gapToOptimalMs: gap,
+      totalTime:      formatDuration(r.totalLapTimes),
+      isSessionBest:  r.bestLapTime > 0 && r.bestLapTime === overallBest,
     })
   }
   return stats

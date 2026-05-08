@@ -56,18 +56,25 @@ export const messages: Message[] = [
   { id:19, timestamp:'00:30:05', type:'pit',          carNum:2,  carClass:'HYPERCAR', text:'#2 Cadillac Racing PIT IN — Lap 10' },
 ]
 
-export const driverStats: DriverStat[] = [
-  { carNum:2,  carNumStr:'2',  carClass:'HYPERCAR', team:'Cadillac Racing',     driver:'Bamber',       bestLap:'1:57.843', s1:'0:24.211', s2:'0:38.892', s3:'0:54.740', totalTime:'01:08:22', isSessionBest:true  },
-  { carNum:7,  carNumStr:'7',  carClass:'HYPERCAR', team:'Toyota Gazoo Racing', driver:'Conway',        bestLap:'1:57.991', s1:'0:24.330', s2:'0:39.001', s3:'0:54.660', totalTime:'01:11:05', isSessionBest:false },
-  { carNum:6,  carNumStr:'6',  carClass:'HYPERCAR', team:'Porsche Penske',      driver:'Lotterer',      bestLap:'1:58.502', s1:'0:24.488', s2:'0:39.244', s3:'0:54.770', totalTime:'01:02:15', isSessionBest:false },
-  { carNum:8,  carNumStr:'8',  carClass:'HYPERCAR', team:'Toyota Gazoo Racing', driver:'Buemi',         bestLap:'1:58.210', s1:'0:24.351', s2:'0:39.100', s3:'0:54.759', totalTime:'00:48:33', isSessionBest:false },
-  { carNum:10, carNumStr:'10', carClass:'LMP2',     team:'United Autosports',   driver:'Owen',          bestLap:'2:01.101', s1:'0:25.220', s2:'0:40.441', s3:'0:55.440', totalTime:'01:10:22', isSessionBest:false },
-  { carNum:22, carNumStr:'22', carClass:'LMP2',     team:'United Autosports',   driver:'Albuquerque',   bestLap:'2:01.445', s1:'0:25.440', s2:'0:40.655', s3:'0:55.350', totalTime:'01:05:18', isSessionBest:false },
-  { carNum:37, carNumStr:'37', carClass:'LMP2',     team:'Cool Racing',         driver:'Laurent',       bestLap:'2:02.100', s1:'0:25.680', s2:'0:40.900', s3:'0:55.520', totalTime:'01:08:44', isSessionBest:false },
-  { carNum:77, carNumStr:'77', carClass:'LMGT3',    team:'Proton Competition',  driver:'Cairoli',       bestLap:'2:07.889', s1:'0:26.100', s2:'0:42.255', s3:'0:59.534', totalTime:'01:09:11', isSessionBest:false },
-  { carNum:91, carNumStr:'91', carClass:'LMGT3',    team:'Porsche GT Team',     driver:'Pilet',         bestLap:'2:08.012', s1:'0:26.188', s2:'0:42.388', s3:'0:59.436', totalTime:'01:07:55', isSessionBest:false },
-  { carNum:55, carNumStr:'55', carClass:'LMGT3',    team:'AF Corse',            driver:'Fuoco',         bestLap:'2:08.770', s1:'0:26.340', s2:'0:42.800', s3:'0:59.630', totalTime:'01:11:22', isSessionBest:false },
+const _driverStatsBase = [
+  { carNum:2,  carNumStr:'2',  carClass:'HYPERCAR' as const, team:'Cadillac Racing',     driver:'Bamber',       bestLap:'1:57.843', s1:'0:24.211', s2:'0:38.892', s3:'0:54.740', totalTime:'01:08:22', isSessionBest:true  },
+  { carNum:7,  carNumStr:'7',  carClass:'HYPERCAR' as const, team:'Toyota Gazoo Racing', driver:'Conway',       bestLap:'1:57.991', s1:'0:24.330', s2:'0:39.001', s3:'0:54.660', totalTime:'01:11:05', isSessionBest:false },
+  { carNum:6,  carNumStr:'6',  carClass:'HYPERCAR' as const, team:'Porsche Penske',      driver:'Lotterer',     bestLap:'1:58.502', s1:'0:24.488', s2:'0:39.244', s3:'0:54.770', totalTime:'01:02:15', isSessionBest:false },
+  { carNum:8,  carNumStr:'8',  carClass:'HYPERCAR' as const, team:'Toyota Gazoo Racing', driver:'Buemi',        bestLap:'1:58.210', s1:'0:24.351', s2:'0:39.100', s3:'0:54.759', totalTime:'00:48:33', isSessionBest:false },
+  { carNum:10, carNumStr:'10', carClass:'LMP2'     as const, team:'United Autosports',   driver:'Owen',         bestLap:'2:01.101', s1:'0:25.220', s2:'0:40.441', s3:'0:55.440', totalTime:'01:10:22', isSessionBest:false },
+  { carNum:22, carNumStr:'22', carClass:'LMP2'     as const, team:'United Autosports',   driver:'Albuquerque',  bestLap:'2:01.445', s1:'0:25.440', s2:'0:40.655', s3:'0:55.350', totalTime:'01:05:18', isSessionBest:false },
+  { carNum:37, carNumStr:'37', carClass:'LMP2'     as const, team:'Cool Racing',         driver:'Laurent',      bestLap:'2:02.100', s1:'0:25.680', s2:'0:40.900', s3:'0:55.520', totalTime:'01:08:44', isSessionBest:false },
+  { carNum:77, carNumStr:'77', carClass:'LMGT3'    as const, team:'Proton Competition',  driver:'Cairoli',      bestLap:'2:07.889', s1:'0:26.100', s2:'0:42.255', s3:'0:59.534', totalTime:'01:09:11', isSessionBest:false },
+  { carNum:91, carNumStr:'91', carClass:'LMGT3'    as const, team:'Porsche GT Team',     driver:'Pilet',        bestLap:'2:08.012', s1:'0:26.188', s2:'0:42.388', s3:'0:59.436', totalTime:'01:07:55', isSessionBest:false },
+  { carNum:55, carNumStr:'55', carClass:'LMGT3'    as const, team:'AF Corse',            driver:'Fuoco',        bestLap:'2:08.770', s1:'0:26.340', s2:'0:42.800', s3:'0:59.630', totalTime:'01:11:22', isSessionBest:false },
 ]
+export const driverStats: DriverStat[] = _driverStatsBase.map(d => ({
+  ...d,
+  bestLapMs:      null,
+  optimalLap:     '--:--.---',
+  optimalLapMs:   null,
+  gapToOptimalMs: null,
+}))
 
 export const carStints: CarStint[] = [
   {
