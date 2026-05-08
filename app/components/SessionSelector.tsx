@@ -10,15 +10,21 @@ interface Props {
   onSelect:    (sid: number | null) => void
   loading:     boolean
   isLive:      boolean         // is the live SignalR feed currently connected
+  liveSid:     number | null   // sid of the currently-streamed session, if any
 }
 
 export default function SessionSelector({
-  event, sessions, selectedSid, onSelect, loading, isLive,
+  event, sessions, selectedSid, onSelect, loading, isLive, liveSid,
 }: Props) {
   const now = Date.now()
 
   // A session is selectable once it has started (date-based; isRunning is unreliable).
   const startedSessions = sessions.filter(s => new Date(s.startTime).getTime() <= now)
+
+  // The LIVE button and the live-session button are data-linked: clicking either
+  // means "show live data". `selectedSid === liveSid` is treated identically to
+  // `selectedSid === null`.
+  const onLive = isLive && (selectedSid === null || selectedSid === liveSid)
 
   return (
     <div className="panel flex items-center gap-2 px-3 py-2 flex-wrap">
@@ -26,7 +32,12 @@ export default function SessionSelector({
 
       <button
         onClick={() => onSelect(null)}
-        className={cn('btn-ghost', selectedSid === null && 'on')}
+        className={cn(
+          'btn-ghost',
+          onLive       && 'live-on',
+          !onLive && isLive   && 'live-idle',
+          !isLive && selectedSid === null && 'on',
+        )}
         style={{ padding: '3px 10px' }}
       >
         <span className="inline-flex items-center gap-1.5">
@@ -47,18 +58,31 @@ export default function SessionSelector({
       )}
 
       {startedSessions.map(s => {
-        const ended  = new Date(s.endTime).getTime() < now
-        const active = selectedSid === s.id
+        const ended       = new Date(s.endTime).getTime() < now
+        const isLiveOne   = liveSid != null && s.id === liveSid && isLive
+        const userPicked  = selectedSid === s.id
+        // Live session button reflects the same "active" state as the LIVE button.
+        const liveActive  = isLiveOne && onLive
+        const idleActive  = !isLiveOne && userPicked
         return (
           <button
             key={s.id}
-            onClick={() => onSelect(s.id)}
-            className={cn('btn-ghost', active && 'on')}
+            // Clicking the live session is equivalent to clicking LIVE.
+            onClick={() => onSelect(isLiveOne ? null : s.id)}
+            className={cn(
+              'btn-ghost',
+              liveActive && 'live-on',
+              isLiveOne && !liveActive && 'live-idle',
+              idleActive && 'on',
+            )}
             style={{ padding: '3px 10px' }}
             title={`${s.name} · ${new Date(s.startTime).toLocaleString('ko-KR')}`}
           >
             <span className="inline-flex items-center gap-1.5">
-              {!ended && <span className="w-1.5 h-1.5 rounded-full bg-warning dot-blink" />}
+              {isLiveOne
+                ? <span className="w-1.5 h-1.5 rounded-full bg-live dot-blink" />
+                : !ended && <span className="w-1.5 h-1.5 rounded-full bg-warning dot-blink" />
+              }
               {shortSessionLabel(s)}
             </span>
           </button>

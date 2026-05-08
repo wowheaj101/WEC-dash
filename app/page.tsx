@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Header          from '@/app/components/Header'
 import FlagBanner      from '@/app/components/FlagBanner'
 import StatsBar        from '@/app/components/StatsBar'
@@ -72,7 +72,7 @@ function ConnBadge({ status, serviceName, reconnect }: {
 
 export default function Page() {
   const {
-    status, serviceName, reconnect,
+    status, serviceName, liveSid, reconnect,
     cars, raceInfo, stats, messages, carStints, driverStats, isLive,
   } = useTiming71()
 
@@ -83,10 +83,36 @@ export default function Page() {
 
   const isReplayMode      = replay.selectedMeta !== null && replay.current !== null
   const isShowingPrevious = !isReplayMode && status === 'showing_previous'
-  const isSessionView     = !isReplayMode && selectedSid !== null
 
-  // Only fetch session data when a session is selected and not in replay mode.
-  const sessionResult = useSessionResults(isSessionView ? selectedSid : null)
+  // Most-recently-started session of the current event. Used as a fallback when
+  // SignalR isn't live and the user hasn't picked a session — so the dashboard
+  // still shows the latest results from the in-progress round instead of
+  // falling back to the previous round's blob snapshot.
+  const mostRecentStarted = useMemo<typeof sessions[number] | null>(() => {
+    const now = Date.now()
+    const started = sessions.filter(s => new Date(s.startTime).getTime() <= now)
+    if (started.length === 0) return null
+    return [...started].sort(
+      (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime(),
+    )[0]
+  }, [sessions])
+
+  // Treat `selectedSid === liveSid` the same as `selectedSid === null`: both
+  // mean "show live data". REST is only used when viewing a non-live session
+  // or auto-falling back when the live feed isn't connected.
+  const viewingLive = !isReplayMode
+    && isLive
+    && (selectedSid === null || selectedSid === liveSid)
+
+  const restSid: number | null =
+    isReplayMode    ? null :
+    viewingLive     ? null :
+    selectedSid !== null ? selectedSid :
+    !isLive && mostRecentStarted ? mostRecentStarted.id :
+    null
+
+  const isSessionView = restSid !== null
+  const sessionResult = useSessionResults(restSid)
 
   const displayCars =
     isReplayMode  ? replay.current!.cars :
@@ -100,8 +126,8 @@ export default function Page() {
                     stats
   const displayMessages = isReplayMode ? replay.current!.messages : messages
 
-  const selectedSession = selectedSid != null
-    ? sessions.find(s => s.id === selectedSid) ?? null
+  const selectedSession = isSessionView
+    ? sessions.find(s => s.id === restSid) ?? null
     : null
 
   return (
@@ -158,6 +184,7 @@ export default function Page() {
                 onSelect={setSelectedSid}
                 loading={sessionsLoading}
                 isLive={isLive}
+                liveSid={liveSid}
               />
             )}
             {isSessionView && selectedSession && (

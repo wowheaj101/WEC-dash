@@ -232,6 +232,22 @@ html, body {
 }
 .btn-ghost:hover { background: hsl(var(--bg-3)); color: hsl(var(--fg-0)); border-color: hsl(var(--line-3)); }
 .btn-ghost.on    { background: hsl(var(--fg-0)); color: hsl(var(--bg-0)); border-color: hsl(var(--fg-0)); }
+.btn-ghost.live-on,
+.btn-ghost.live-on:hover {
+  background:    hsl(var(--live));
+  color:         hsl(var(--bg-0));
+  border-color:  hsl(var(--live));
+  box-shadow:    0 0 0 1px hsl(var(--live-border)), 0 0 12px hsl(var(--live) / 0.35);
+}
+.btn-ghost.live-idle {
+  border-color:  hsl(var(--live-border));
+  color:         hsl(var(--live));
+}
+.btn-ghost.live-idle:hover {
+  background:    hsl(var(--live-bg));
+  color:         hsl(var(--live));
+  border-color:  hsl(var(--live));
+}
 
 /* Live glow (kept for compatibility) */
 .glow-live   { box-shadow: 0 0 0 1px hsl(var(--live-border)), 0 0 16px hsl(var(--live) / 0.14); }

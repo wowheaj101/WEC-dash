@@ -44,6 +44,7 @@ export type ConnStatus =
 export interface UseTiming71Result {
   status:      ConnStatus
   serviceName: string | null
+  liveSid:     number | null   // sid of the currently-streamed WEC session (null if no live)
   cars:        Car[]
   raceInfo:    RaceInfo
   stats:       Stats
@@ -131,6 +132,7 @@ const EMPTY_STATS: Stats = {
 export function useTiming71(): UseTiming71Result {
   const [status,      setStatus]      = useState<ConnStatus>('idle')
   const [serviceName, setServiceName] = useState<string | null>(null)
+  const [liveSid,     setLiveSid]     = useState<number | null>(null)
   const [cars,        setCars]        = useState<Car[]>([])
   const [raceInfo,    setRaceInfo]    = useState<RaceInfo>(EMPTY_RACE_INFO)
   const [stats,       setStats]       = useState<Stats>(EMPTY_STATS)
@@ -411,6 +413,7 @@ export function useTiming71(): UseTiming71Result {
 
     setStatus('connecting')
     setServiceName(null)
+    setLiveSid(null)
     setCars([])
     setMessages([])
     setCarStints([])
@@ -446,6 +449,7 @@ export function useTiming71(): UseTiming71Result {
 
       onServiceFound: (sid, name) => {
         setServiceName(name)
+        setLiveSid(sid)
         sessionNameRef.current = name
         setStatus('connected')
       },
@@ -453,6 +457,7 @@ export function useTiming71(): UseTiming71Result {
       onNoService: () => {
         // 일단 dummy 로 채우고, 직전 완료 라운드 데이터가 있으면 비동기로 교체
         setStatus('no_service')
+        setLiveSid(null)
         setCars(dummyCars)
         setRaceInfo(dummyRaceInfo)
         setStats(dummyStats)
@@ -653,5 +658,5 @@ export function useTiming71(): UseTiming71Result {
     return () => clearTimeout(t)
   }, [status, startConnection])
 
-  return { status, serviceName, cars, raceInfo, stats, messages, carStints, driverStats, isLive, reconnect: startConnection }
+  return { status, serviceName, liveSid, cars, raceInfo, stats, messages, carStints, driverStats, isLive, reconnect: startConnection }
 }
