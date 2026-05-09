@@ -240,6 +240,7 @@ export function useTiming71(): UseTiming71Result {
       const gap  = gapRef.current.get(p.id)
       const laps = lapRef.current.get(p.id)
       const pits = pitCountRef.current.get(p.id) ?? 0
+      const sectorBests = sectorBestRef.current.get(p.id)
       const restored = restoredByCarNum.get(p.carNumber)
 
       const hasLiveStatus = !!(rank || laps)
@@ -265,6 +266,7 @@ export function useTiming71(): UseTiming71Result {
         carNumStr:    p.carNumber,
         team:         p.teamName,
         drivers:      p.drivers.map(d => d.threeLettersName).join(' / '),
+        manufacturer: p.manufacturer || restored?.manufacturer,
         tire:         restored?.tire ?? '?',
         laps:         rank?.lapNumber ?? restored?.laps ?? 0,
         lastLap:      laps?.lastLapMs ? formatMs(laps.lastLapMs) : (restored?.lastLap ?? '--:--.---'),
@@ -277,6 +279,9 @@ export function useTiming71(): UseTiming71Result {
         lastColor:    laps?.lastColor ?? restored?.lastColor,
         bestColor:    laps?.bestColor ?? restored?.bestColor,
         sectorNum:    rank?.sectorNumber ?? restored?.sectorNum,
+        s1Ms:         sectorBests?.[0] ?? restored?.s1Ms ?? null,
+        s2Ms:         sectorBests?.[1] ?? restored?.s2Ms ?? null,
+        s3Ms:         sectorBests?.[2] ?? restored?.s3Ms ?? null,
         sectorEnterTs,
         sectorDurationMs,
       } as Car

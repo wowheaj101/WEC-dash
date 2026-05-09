@@ -12,6 +12,8 @@ export interface Car {
   carNumStr:     string
   team:          string
   drivers:       string
+  /** Vehicle/manufacturer model (e.g. "Toyota TS010 Hybrid", "BMW M Hybrid V8") */
+  manufacturer?: string
   tire:          Tire
   laps:          number
   lastLap:       string
@@ -24,6 +26,10 @@ export interface Car {
   lastColor?:    'sb' | 'pb'
   bestColor?:    'sb' | 'pb'
   sectorNum?:    number
+  /** Best sector times (ms) — null when not measured yet */
+  s1Ms?:         number | null
+  s2Ms?:         number | null
+  s3Ms?:         number | null
   /** Absolute ts (ms) when the car entered its current sector — used for TrackMap interpolation */
   sectorEnterTs?:    number
   /** Rolling average duration of the car's current sector in ms */
