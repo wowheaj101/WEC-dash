@@ -99,6 +99,15 @@ function mapClass(classId: string): CarClass {
   return 'LMP2'
 }
 
+/** Strict variant — returns undefined for unknown/empty classId so messages
+ *  don't all default to LMP2 when the upstream event carries no class info. */
+function mapClassStrict(classId: string | undefined | null): CarClass | undefined {
+  if (classId === 'HYPERCAR') return 'HYPERCAR'
+  if (classId === 'LMGT3')    return 'LMGT3'
+  if (classId === 'LMP2')     return 'LMP2'
+  return undefined
+}
+
 function formatDuration(ms: number): string {
   const h = Math.floor(ms / 3600000)
   const m = Math.floor((ms % 3600000) / 60000)
@@ -752,13 +761,17 @@ export function useTiming71(): UseTiming71Result {
       onRaceLog: (item) => {
         const text = item.message ?? item.text ?? ''
         if (!text) return
-        // Only attach carNum/carClass when the upstream event explicitly
-        // references a participant. Generic race-control messages (safety
-        // car, flag changes) come without carNumber/classId and shouldn't
-        // be tagged with an arbitrary car badge.
-        const carNum   = item.carNumber ? parseInt(item.carNumber) : NaN
-        const hasCar   = Number.isFinite(carNum) && carNum > 0
-        const carClass = hasCar && item.classId ? mapClass(item.classId) : undefined
+        // Resolve car info from the participant map (more reliable than the
+        // raw event fields, which may be empty for generic race-control logs).
+        const participant = item.pid ? participantsRef.current.get(item.pid) : undefined
+        const carNumRaw = participant?.carNumber ?? item.carNumber
+        const carNum    = carNumRaw ? parseInt(carNumRaw) : NaN
+        const hasCar    = Number.isFinite(carNum) && carNum > 0
+        // Use strict class mapping — unknown/empty classId returns undefined
+        // instead of defaulting to LMP2, which previously tagged every
+        // generic race-control message with a wrong LMP2 badge.
+        const classId   = participant?.classId ?? item.classId
+        const carClass  = hasCar ? mapClassStrict(classId) : undefined
         setMessages(prev => {
           const msg: Message = {
             id:        nextMsgId(),
@@ -796,15 +809,21 @@ export function useTiming71(): UseTiming71Result {
 
         const participant = participantsRef.current.get(item.pid)
         if (participant) {
-          const carNum = parseInt(item.carNumber)
+          // Prefer participant's carNumber/classId — they're authoritative.
+          // The raw event sometimes ships with empty carNumber producing
+          // "#undefined" in the rendered text.
+          const carNumStr = participant.carNumber || item.carNumber || ''
+          const carNum    = carNumStr ? parseInt(carNumStr) : NaN
+          if (!Number.isFinite(carNum) || carNum <= 0) return
+          const carClass = mapClassStrict(participant.classId || item.classId)
           setMessages(prev => {
             const msg: Message = {
               id:        nextMsgId(),
               timestamp: new Date(item.ts).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
               type:      'pit',
-              carNum:    Number.isFinite(carNum) && carNum > 0 ? carNum : undefined,
-              carClass:  mapClass(item.classId),
-              text:      `#${item.carNumber} ${participant.teamName} 피트 인`,
+              carNum,
+              carClass,
+              text:      `#${carNumStr} ${participant.teamName} 피트 인`,
             }
             return [...prev.slice(-49), msg]
           })
@@ -833,15 +852,18 @@ export function useTiming71(): UseTiming71Result {
 
         const participant = participantsRef.current.get(item.pid)
         if (participant) {
-          const carNum = parseInt(item.carNumber)
+          const carNumStr = participant.carNumber || item.carNumber || ''
+          const carNum    = carNumStr ? parseInt(carNumStr) : NaN
+          if (!Number.isFinite(carNum) || carNum <= 0) return
+          const carClass = mapClassStrict(participant.classId || item.classId)
           setMessages(prev => {
             const msg: Message = {
               id:        nextMsgId(),
               timestamp: new Date(item.ts).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
               type:      'pit',
-              carNum:    Number.isFinite(carNum) && carNum > 0 ? carNum : undefined,
-              carClass:  mapClass(item.classId),
-              text:      `#${item.carNumber} ${participant.teamName} 피트 아웃`,
+              carNum,
+              carClass,
+              text:      `#${carNumStr} ${participant.teamName} 피트 아웃`,
             }
             return [...prev.slice(-49), msg]
           })
