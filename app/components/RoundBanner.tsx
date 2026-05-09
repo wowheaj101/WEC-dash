@@ -82,9 +82,8 @@ export default function RoundBanner({ isLive, sessions = [] }: Props) {
     }
   }, [sessions])
 
-  // Hide during a live race — but keep the banner up for the 3 s green flash
-  // even if isLive flips true the moment the timer hits zero.
-  if (!flashing && isLive) return null
+  // Hide during a live race or when countdown reaches zero (not during 3s flash)
+  if (!flashing && (isLive || (cd && cd.totalMs <= 0))) return null
   if (!next || !cd)        return null
 
   const pad = (n: number) => String(n).padStart(2, '0')

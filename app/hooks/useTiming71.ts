@@ -185,6 +185,9 @@ export function useTiming71(): UseTiming71Result {
   const clientRef       = useRef<GriiipClient | null>(null)
   const latestRef       = useRef({ cars, raceInfo, stats, messages, carStints, driverStats, lapHistory })
   const snapshotIdxRef  = useRef(0)
+  // True once we've received at least one rank update — until then, don't
+  // overwrite restored snapshot data with empty live state.
+  const hasLiveDataRef  = useRef(false)
 
   useEffect(() => {
     latestRef.current = { cars, raceInfo, stats, messages, carStints, driverStats, lapHistory }
@@ -204,51 +207,52 @@ export function useTiming71(): UseTiming71Result {
       if (ls.bestLapMs && ls.bestLapMs < overallBest) overallBest = ls.bestLapMs
     })
 
-    return participants
-      .map((p): Car => {
-        const rank = rankRef.current.get(p.id)
-        const gap  = gapRef.current.get(p.id)
-        const laps = lapRef.current.get(p.id)
-        const pits = pitCountRef.current.get(p.id) ?? 0
+    const mapped = participants.map((p): Car => {
+      const rank = rankRef.current.get(p.id)
+      const gap  = gapRef.current.get(p.id)
+      const laps = lapRef.current.get(p.id)
+      const pits = pitCountRef.current.get(p.id) ?? 0
 
-        const status: Status = rank?.isDeleted ? 'OUT'
-          : (laps?.inPit ? 'PIT' : 'RUN')
+      const status: Status = rank?.isDeleted ? 'OUT'
+        : (laps?.inPit ? 'PIT' : 'RUN')
 
-        const sectorEnter = sectorEnterTsRef.current.get(p.id)
-        const sectorDurs  = sectorDurationRef.current.get(p.id)
-        const sectorNum   = rank?.sectorNumber
-        const sectorEnterTs = sectorEnter && sectorEnter.sector === sectorNum
-          ? sectorEnter.ts
-          : undefined
-        const sectorDurationMs = sectorDurs && sectorNum
-          ? sectorDurs[Math.max(0, Math.min(2, sectorNum - 1))] || undefined
-          : undefined
+      const sectorEnter = sectorEnterTsRef.current.get(p.id)
+      const sectorDurs  = sectorDurationRef.current.get(p.id)
+      const sectorNum   = rank?.sectorNumber
+      const sectorEnterTs = sectorEnter && sectorEnter.sector === sectorNum
+        ? sectorEnter.ts
+        : undefined
+      const sectorDurationMs = sectorDurs && sectorNum
+        ? sectorDurs[Math.max(0, Math.min(2, sectorNum - 1))] || undefined
+        : undefined
 
-        return {
-          pos:          rank?.overallPosition ?? 999,
-          clsPos:       rank?.position        ?? 999,
-          carClass:     mapClass(p.classId),
-          carNum:       parseInt(p.carNumber) || 0,
-          carNumStr:    p.carNumber,
-          team:         p.teamName,
-          drivers:      p.drivers.map(d => d.threeLettersName).join(' / '),
-          tire:         '?',
-          laps:         rank?.lapNumber ?? 0,
-          lastLap:      formatMs(laps?.lastLapMs),
-          bestLap:      formatMs(laps?.bestLapMs),
-          gap:          gap ? formatGap(gap.gapToFirstMillis, gap.gapToFirstLaps) : 'Leader',
-          interval:     gap ? formatGap(gap.gapToAheadMillis, gap.gapToAheadLaps) : '--',
-          pitstops:     pits,
-          status,
-          isFastestLap: !!(laps?.bestLapMs && laps.bestLapMs === overallBest),
-          lastColor:    laps?.lastColor ?? undefined,
-          bestColor:    laps?.bestColor ?? undefined,
-          sectorNum:    rank?.sectorNumber,
-          sectorEnterTs,
-          sectorDurationMs,
-        } as Car
-      })
-      .filter(c => c.pos !== 999)
+      return {
+        pos:          rank?.overallPosition ?? 1,
+        clsPos:       rank?.position        ?? 1,
+        carClass:     mapClass(p.classId),
+        carNum:       parseInt(p.carNumber) || 0,
+        carNumStr:    p.carNumber,
+        team:         p.teamName,
+        drivers:      p.drivers.map(d => d.threeLettersName).join(' / '),
+        tire:         '?',
+        laps:         rank?.lapNumber ?? 0,
+        lastLap:      formatMs(laps?.lastLapMs),
+        bestLap:      formatMs(laps?.bestLapMs),
+        gap:          gap ? formatGap(gap.gapToFirstMillis, gap.gapToFirstLaps) : 'Leader',
+        interval:     gap ? formatGap(gap.gapToAheadMillis, gap.gapToAheadLaps) : '--',
+        pitstops:     pits,
+        status,
+        isFastestLap: !!(laps?.bestLapMs && laps.bestLapMs === overallBest),
+        lastColor:    laps?.lastColor ?? undefined,
+        bestColor:    laps?.bestColor ?? undefined,
+        sectorNum:    rank?.sectorNumber,
+        sectorEnterTs,
+        sectorDurationMs,
+      } as Car
+    })
+
+    return mapped
+      .filter(c => c.carNum > 0)
       .sort((a, b) => a.pos - b.pos)
   }, [])
 
@@ -384,6 +388,9 @@ export function useTiming71(): UseTiming71Result {
   }, [])
 
   const flush = useCallback(() => {
+    // Don't overwrite restored snapshot until we've received real live data
+    if (!hasLiveDataRef.current) return
+
     const newCars        = buildCars()
     const newRaceInfo    = buildRaceInfo()
     const newStats       = buildStats()
@@ -401,46 +408,51 @@ export function useTiming71(): UseTiming71Result {
 
   // ── Snapshot auto-save ────────────────────────────────────────
 
-  useEffect(() => {
-    if (status !== 'live') return
+  const saveSnapshot = useCallback(async () => {
     const roundStatus  = getRoundStatus(CURRENT_SEASON)
     const activeRound  = roundStatus.current ?? roundStatus.next
     if (!activeRound) return
 
-    const saveSnapshot = async () => {
-      const { cars: c, raceInfo: r, stats: s, messages: m, carStints: cs, driverStats: ds, lapHistory: lh } = latestRef.current
-      if (!c.length) return
-      const payload: SnapshotPayload = {
-        year:        new Date(activeRound.raceStart).getFullYear(),
-        round:       activeRound.round,
-        name:        activeRound.name,
-        circuit:     activeRound.circuit,
-        countryFlag: activeRound.countryFlag,
-        duration:    activeRound.duration,
-        snapshot: {
-          idx:         snapshotIdxRef.current++,
-          ts:          Date.now(),
-          cars:        c,
-          raceInfo:    r,
-          stats:       s,
-          messages:    m.slice(-30),
-          carStints:   cs,
-          driverStats: ds,
-          lapHistory:  lh,
-        },
-      }
-      try {
-        await fetch('/api/races/snapshot', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-      } catch (err) { console.warn('[snapshot] save failed:', err) }
-    }
+    const { cars: c, raceInfo: r, stats: s, messages: m, carStints: cs, driverStats: ds, lapHistory: lh } = latestRef.current
+    if (!c.length) return
 
+    const payload: SnapshotPayload = {
+      year:        new Date(activeRound.raceStart).getFullYear(),
+      round:       activeRound.round,
+      name:        activeRound.name,
+      circuit:     activeRound.circuit,
+      countryFlag: activeRound.countryFlag,
+      duration:    activeRound.duration,
+      snapshot: {
+        idx:         snapshotIdxRef.current++,
+        ts:          Date.now(),
+        cars:        c,
+        raceInfo:    r,
+        stats:       s,
+        messages:    m.slice(-30),
+        carStints:   cs,
+        driverStats: ds,
+        lapHistory:  lh,
+      },
+    }
+    try {
+      await fetch('/api/races/snapshot', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+    } catch (err) { console.warn('[snapshot] save failed:', err) }
+  }, [])
+
+  useEffect(() => {
+    if (status !== 'live') return
+
+    // Save immediately when status changes to live
     saveSnapshot()
-    const timer = setInterval(saveSnapshot, SNAPSHOT_INTERVAL_MS)
+
+    // Then auto-save every interval
+    const timer = setInterval(() => saveSnapshot(), SNAPSHOT_INTERVAL_MS)
     return () => { clearInterval(timer); snapshotIdxRef.current = 0 }
-  }, [status])
+  }, [status, saveSnapshot])
 
   // ── Connect ───────────────────────────────────────────────────
 
@@ -449,6 +461,7 @@ export function useTiming71(): UseTiming71Result {
     clientRef.current = null
 
     // Reset refs
+    hasLiveDataRef.current  = false
     participantsRef.current = new Map()
     rankRef.current         = new Map()
     gapRef.current          = new Map()
@@ -557,6 +570,7 @@ export function useTiming71(): UseTiming71Result {
       },
 
       onRanks: (items) => {
+        hasLiveDataRef.current = true
         const now = Date.now()
         for (const item of items) {
           const prev = rankRef.current.get(item.pid)

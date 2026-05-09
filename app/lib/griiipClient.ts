@@ -243,14 +243,30 @@ export class GriiipClient {
     hub.on('lv-pit-in',       (data: PitItem)                => { if (!this.destroyed && data)        this.cb.onPitIn(data) })
     hub.on('lv-pit-out',      (data: PitItem)                => { if (!this.destroyed && data)        this.cb.onPitOut(data) })
 
-    await hub.start()
+    try {
+      await hub.start()
+    } catch (err) {
+      this.hub = null
+      throw new Error(`SignalR connection failed: ${err instanceof Error ? err.message : String(err)}`)
+    }
+
     if (this.destroyed) { hub.stop(); return }
 
     this.cb.onConnected()
 
     // 5. Join all channels
+    const channelErrors: string[] = []
     for (const ch of CHANNELS) {
-      await hub.invoke('JoinGroup', `SID-${sid}-${ch}`)
+      try {
+        await hub.invoke('JoinGroup', `SID-${sid}-${ch}`)
+      } catch (err) {
+        channelErrors.push(ch)
+        console.warn(`[SignalR] Failed to join channel ${ch}:`, err)
+      }
+    }
+
+    if (channelErrors.length === CHANNELS.length) {
+      throw new Error(`Failed to join any SignalR channels (tried ${channelErrors.join(', ')})`)
     }
   }
 

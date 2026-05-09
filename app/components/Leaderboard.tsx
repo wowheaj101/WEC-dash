@@ -1,34 +1,33 @@
 'use client'
 
-import { useState } from 'react'
 import type { Car, CarClass } from '@/app/types/race'
 import LeaderboardRow from './LeaderboardRow'
-import { cn } from '@/app/lib/utils'
 
-type Filter = 'ALL' | 'HC' | 'P2' | 'GT3'
-const FILTERS: Filter[] = ['ALL', 'HC', 'P2', 'GT3']
-
-const FILTER_MATCH: Record<Exclude<Filter, 'ALL'>, CarClass> = {
-  HC:  'HYPERCAR',
-  P2:  'LMP2',
-  GT3: 'LMGT3',
+const CLASS_ORDER: CarClass[] = ['HYPERCAR', 'LMP2', 'LMGT3']
+const CLASS_LABELS: Record<CarClass, string> = {
+  HYPERCAR: 'HYPERCAR',
+  LMP2: 'LMP2',
+  LMGT3: 'LM GT3',
 }
 
 export default function Leaderboard({ cars }: { cars: Car[] }) {
-  const [filter, setFilter] = useState<Filter>('ALL')
+  const leaderLap = cars.length > 0 ? cars[0].laps : 0
 
-  const filtered = filter === 'ALL'
-    ? cars
-    : cars.filter(c => c.carClass === FILTER_MATCH[filter])
+  // Group cars by class, sorted by class position
+  const carsByClass: Record<CarClass, Car[]> = {
+    HYPERCAR: [],
+    LMP2: [],
+    LMGT3: [],
+  }
 
-  const classBorderNums = new Set<string>()
-  filtered.forEach((car, i) => {
-    if (i > 0 && car.carClass !== filtered[i - 1].carClass) {
-      classBorderNums.add(car.carNumStr)
-    }
+  cars.forEach(car => {
+    carsByClass[car.carClass].push(car)
   })
 
-  const leaderLap = cars.length > 0 ? cars[0].laps : 0
+  // Sort each class by class position
+  Object.keys(carsByClass).forEach(key => {
+    carsByClass[key as CarClass].sort((a, b) => a.clsPos - b.clsPos)
+  })
 
   return (
     <div className="panel flex flex-col min-h-0 overflow-hidden">
@@ -37,32 +36,36 @@ export default function Leaderboard({ cars }: { cars: Car[] }) {
           CLASSIFICATION
           <span className="text-fg3 font-normal tracking-[1px] ml-1.5">· LAP {leaderLap}</span>
         </span>
-        <div className="ml-auto flex gap-1">
-          {FILTERS.map(t => (
-            <button
-              key={t}
-              onClick={() => setFilter(t)}
-              className={cn('btn-ghost', filter === t && 'on')}
-              style={{ padding: '3px 10px' }}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
       </div>
 
       <div className="overflow-x-auto flex-1 min-h-0">
         <div className="flex flex-col p-2 min-w-[820px]">
-          {filtered.map(car => (
-            <LeaderboardRow
-              key={car.carNumStr}
-              car={car}
-              isClassBorder={classBorderNums.has(car.carNumStr)}
-            />
-          ))}
-          {filtered.length === 0 && (
+          {CLASS_ORDER.map(carClass => {
+            const classJobs = carsByClass[carClass]
+            if (classJobs.length === 0) return null
+
+            return (
+              <div key={carClass} className="mb-3">
+                {/* Class section header */}
+                <div className="text-[10px] font-bold tracking-[2px] uppercase text-fg3 px-2 py-1.5 mb-1">
+                  {CLASS_LABELS[carClass]}
+                </div>
+
+                {/* Class rows */}
+                {classJobs.map((car, idx) => (
+                  <LeaderboardRow
+                    key={car.carNumStr}
+                    car={car}
+                    isClassBorder={idx > 0}
+                  />
+                ))}
+              </div>
+            )
+          })}
+
+          {cars.length === 0 && (
             <div className="py-10 text-center text-[11px] text-fg3">
-              해당 클래스 데이터가 없습니다
+              데이터 대기 중...
             </div>
           )}
         </div>

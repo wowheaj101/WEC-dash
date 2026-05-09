@@ -22,7 +22,7 @@ interface Props {
 
 export default function LeaderboardRow({ car, isClassBorder }: Props) {
   const isPit = car.status === 'PIT'
-  const isLeader = car.pos === 1
+  const isLeader = car.clsPos === 1
 
   const gapIsLead = car.gap === 'LEAD'
   const gapClass = gapIsLead
@@ -47,7 +47,7 @@ export default function LeaderboardRow({ car, isClassBorder }: Props) {
         border: isLeader ? '1px solid hsl(var(--hypercar))' : '1px solid hsl(var(--line-1))',
       }}
     >
-      {/* POS — chevron with class color */}
+      {/* POS — class position (chevron with class color) */}
       <div
         className="disp flex items-center justify-center font-black text-white text-[18px]"
         style={{
@@ -56,13 +56,13 @@ export default function LeaderboardRow({ car, isClassBorder }: Props) {
         }}
       >
         <span className="text-[10px] opacity-70 mr-0.5">P</span>
-        {car.pos}
+        {car.clsPos}
       </div>
 
-      {/* CLASS + class pos */}
+      {/* CLASS + overall pos */}
       <div className="flex items-center pl-2 gap-1.5 min-w-0">
         <ClassBadge carClass={car.carClass} />
-        <span className="mono text-[9px] text-fg3 shrink-0">P{car.clsPos}</span>
+        <span className="mono text-[9px] text-fg3 shrink-0">#{car.pos}</span>
       </div>
 
       {/* Car number */}
