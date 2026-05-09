@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import type { Car, CarClass } from '@/app/types/race'
 import type { ConnStatus } from '@/app/hooks/useTiming71'
 import LeaderboardRow from './LeaderboardRow'
@@ -10,6 +11,9 @@ const CLASS_LABELS: Record<CarClass, string> = {
   LMP2: 'LMP2',
   LMGT3: 'LM GT3',
 }
+
+// How long delta badges + flash effects stay visible after a position change
+const DELTA_DISPLAY_MS = 5000
 
 const SKELETON_ROWS_PER_CLASS = 4
 
@@ -56,6 +60,11 @@ function LeaderboardSkeleton({ status }: { status: ConnStatus }) {
   )
 }
 
+interface PositionMemory {
+  clsPos:   number
+  carClass: CarClass
+}
+
 interface LeaderboardProps {
   cars:    Car[]
   status?: ConnStatus
@@ -73,6 +82,40 @@ export default function Leaderboard({ cars, status = 'idle' }: LeaderboardProps)
   cars.forEach(car => carsByClass[car.carClass].push(car))
   Object.keys(carsByClass).forEach(key => {
     carsByClass[key as CarClass].sort((a, b) => a.clsPos - b.clsPos)
+  })
+
+  // ── Position change detection (delta + flash) ────────────────────
+  // delta>0 = position improved (gained), delta<0 = position lost.
+  // Stays non-zero for DELTA_DISPLAY_MS so badge/flash are visible.
+  const prevPosRef = useRef<Map<string, PositionMemory>>(new Map())
+  const deltaTimestampRef = useRef<Map<string, { delta: number; ts: number }>>(new Map())
+
+  const now = Date.now()
+  const activeDeltas = new Map<string, number>()
+
+  cars.forEach(car => {
+    const prev = prevPosRef.current.get(car.carNumStr)
+    if (prev && prev.carClass === car.carClass && prev.clsPos !== car.clsPos) {
+      const delta = prev.clsPos - car.clsPos  // positive = improved
+      deltaTimestampRef.current.set(car.carNumStr, { delta, ts: now })
+    }
+    prevPosRef.current.set(car.carNumStr, { clsPos: car.clsPos, carClass: car.carClass })
+  })
+
+  deltaTimestampRef.current.forEach((entry, carNumStr) => {
+    if (now - entry.ts < DELTA_DISPLAY_MS) {
+      activeDeltas.set(carNumStr, entry.delta)
+    } else {
+      deltaTimestampRef.current.delete(carNumStr)
+    }
+  })
+
+  // Force a re-render after the delta window expires so badges/flashes clear
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    if (deltaTimestampRef.current.size === 0) return
+    const timer = setTimeout(() => setTick(t => t + 1), DELTA_DISPLAY_MS + 100)
+    return () => clearTimeout(timer)
   })
 
   return (
@@ -97,7 +140,11 @@ export default function Leaderboard({ cars, status = 'idle' }: LeaderboardProps)
                 </div>
 
                 {classJobs.map(car => (
-                  <LeaderboardRow key={car.carNumStr} car={car} />
+                  <LeaderboardRow
+                    key={car.carNumStr}
+                    car={car}
+                    deltaPos={activeDeltas.get(car.carNumStr) ?? 0}
+                  />
                 ))}
               </div>
             )
