@@ -42,8 +42,11 @@ interface Props {
 export default function MessageFeed({ messages, compact }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
 
-  const filtered  = filter === 'all' ? messages : messages.filter(m => m.type === filter)
-  const displayed = compact ? filtered.slice(0, 7) : filtered
+  // Sort by id descending — id is set to Date.now() at creation, so the
+  // largest id is the most recent message. Latest first in the UI.
+  const filtered  = (filter === 'all' ? messages : messages.filter(m => m.type === filter))
+  const sorted    = [...filtered].sort((a, b) => b.id - a.id)
+  const displayed = compact ? sorted.slice(0, 7) : sorted
 
   return (
     <div className="panel flex flex-col overflow-hidden min-h-0">

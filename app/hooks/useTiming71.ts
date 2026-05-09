@@ -197,6 +197,14 @@ export function useTiming71(): UseTiming71Result {
   const clientRef       = useRef<GriiipClient | null>(null)
   const latestRef       = useRef({ cars, raceInfo, stats, messages, carStints, driverStats, lapHistory })
   const snapshotIdxRef  = useRef(0)
+  // Monotonic message id — Date.now() collisions when multiple race-control
+  // events arrive in the same tick produce unstable sort order in MessageFeed.
+  const msgIdRef        = useRef(0)
+  const nextMsgId = () => {
+    const now = Date.now()
+    msgIdRef.current = Math.max(msgIdRef.current + 1, now * 1000)
+    return msgIdRef.current
+  }
   // True once we've received at least one rank update — until then, don't
   // overwrite restored snapshot data with empty live state.
   const hasLiveDataRef  = useRef(false)
@@ -744,13 +752,20 @@ export function useTiming71(): UseTiming71Result {
       onRaceLog: (item) => {
         const text = item.message ?? item.text ?? ''
         if (!text) return
+        // Only attach carNum/carClass when the upstream event explicitly
+        // references a participant. Generic race-control messages (safety
+        // car, flag changes) come without carNumber/classId and shouldn't
+        // be tagged with an arbitrary car badge.
+        const carNum   = item.carNumber ? parseInt(item.carNumber) : NaN
+        const hasCar   = Number.isFinite(carNum) && carNum > 0
+        const carClass = hasCar && item.classId ? mapClass(item.classId) : undefined
         setMessages(prev => {
           const msg: Message = {
-            id:        Date.now(),
+            id:        nextMsgId(),
             timestamp: new Date(item.ts).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
             type:      'general',
-            carNum:    item.carNumber ? parseInt(item.carNumber) : undefined,
-            carClass:  item.classId  ? mapClass(item.classId)   : undefined,
+            carNum:    hasCar ? carNum : undefined,
+            carClass,
             text,
           }
           return [...prev.slice(-49), msg]
@@ -781,12 +796,13 @@ export function useTiming71(): UseTiming71Result {
 
         const participant = participantsRef.current.get(item.pid)
         if (participant) {
+          const carNum = parseInt(item.carNumber)
           setMessages(prev => {
             const msg: Message = {
-              id:        Date.now(),
+              id:        nextMsgId(),
               timestamp: new Date(item.ts).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
               type:      'pit',
-              carNum:    parseInt(item.carNumber),
+              carNum:    Number.isFinite(carNum) && carNum > 0 ? carNum : undefined,
               carClass:  mapClass(item.classId),
               text:      `#${item.carNumber} ${participant.teamName} 피트 인`,
             }
@@ -817,12 +833,13 @@ export function useTiming71(): UseTiming71Result {
 
         const participant = participantsRef.current.get(item.pid)
         if (participant) {
+          const carNum = parseInt(item.carNumber)
           setMessages(prev => {
             const msg: Message = {
-              id:        Date.now() + 1,
+              id:        nextMsgId(),
               timestamp: new Date(item.ts).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
               type:      'pit',
-              carNum:    parseInt(item.carNumber),
+              carNum:    Number.isFinite(carNum) && carNum > 0 ? carNum : undefined,
               carClass:  mapClass(item.classId),
               text:      `#${item.carNumber} ${participant.teamName} 피트 아웃`,
             }
