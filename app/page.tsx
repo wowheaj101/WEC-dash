@@ -243,8 +243,13 @@ export default function Page() {
         {/* ── Flag strip ── */}
         <FlagBanner flag={displayRaceInfo.flag} />
 
+        {/* ── Stats bar (visible across all tabs) ── */}
+        <div className="px-6 pt-4">
+          <StatsBar stats={displayStats} raceInfo={displayRaceInfo} />
+        </div>
+
         {/* ── Tab content ── */}
-        <div className="flex-1 px-6 py-5 min-h-0">
+        <div className="flex-1 px-6 py-4 min-h-0">
           {/* Tab 1: Dashboard */}
           <TabsContent value="dashboard" className="flex flex-col gap-3">
             {isReplayMode && replay.selectedMeta && replay.snapshots.length > 0 && (
@@ -260,7 +265,6 @@ export default function Page() {
               />
             )}
             {sessionBar}
-            <StatsBar stats={displayStats} />
             <Leaderboard cars={displayCars} status={status} />
             <Legend />
             <MessageFeed messages={displayMessages} compact />
@@ -364,7 +368,6 @@ export default function Page() {
 
             {isReplayMode && (
               <>
-                <StatsBar stats={displayStats} />
                 <div className="grid gap-3" style={{ gridTemplateColumns: 'minmax(0,1fr) 420px' }}>
                   <div className="flex flex-col gap-3 min-w-0">
                     <Leaderboard cars={displayCars} />
