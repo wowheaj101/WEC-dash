@@ -7,7 +7,6 @@ import StatsBar        from '@/app/components/StatsBar'
 import Leaderboard     from '@/app/components/Leaderboard'
 import Legend          from '@/app/components/Legend'
 import TrackMap        from '@/app/components/TrackMap'
-import StintOverview   from '@/app/components/StintOverview'
 import MessageFeed     from '@/app/components/MessageFeed'
 import DriverAnalysis  from '@/app/components/DriverAnalysis'
 import StintAnalysis   from '@/app/components/StintAnalysis'
@@ -262,25 +261,9 @@ export default function Page() {
             )}
             {sessionBar}
             <StatsBar stats={displayStats} />
-            <div className="grid gap-3" style={{ gridTemplateColumns: 'minmax(0,1fr) 420px' }}>
-              <div className="flex flex-col gap-3 min-w-0">
-                <Leaderboard cars={displayCars} />
-                <Legend />
-              </div>
-              <div className="flex flex-col gap-3 min-h-0">
-                <div className="panel flex flex-col min-h-0" style={{ height: 280 }}>
-                  <div className="panel-header">LIVE TRACK</div>
-                  <div className="flex-1 p-1.5 min-h-0 relative">
-                    <TrackMap cars={displayCars} compact isLive={isLive && !isReplayMode} />
-                  </div>
-                </div>
-                {stintsAvailable
-                  ? <StintOverview carStints={displayCarStints} cars={displayCars} leaderLap={displayStats.leaderLap} />
-                  : <StintUnavailable compact />
-                }
-                <MessageFeed messages={displayMessages} compact />
-              </div>
-            </div>
+            <Leaderboard cars={displayCars} />
+            <Legend />
+            <MessageFeed messages={displayMessages} compact />
           </TabsContent>
 
           {/* Tab 2: Track Map */}
