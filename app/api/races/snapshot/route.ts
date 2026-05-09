@@ -90,7 +90,13 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, snapshots: data.snapshots.length })
   } catch (err) {
-    console.error('[snapshot]', err)
-    return NextResponse.json({ ok: false }, { status: 500 })
+    const message = err instanceof Error ? err.message : String(err)
+    const stack   = err instanceof Error ? err.stack   : undefined
+    console.error('[snapshot] ERROR:', message, stack)
+    return NextResponse.json({
+      ok: false,
+      error: message,
+      hasToken: !!process.env.BLOB_READ_WRITE_TOKEN,
+    }, { status: 500 })
   }
 }
