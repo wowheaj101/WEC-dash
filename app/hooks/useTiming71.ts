@@ -16,6 +16,7 @@ import type {
 } from '@/app/lib/griiipClient'
 import { CURRENT_SEASON }     from '@/app/data/calendar'
 import { getRoundStatus }     from '@/app/lib/getRoundStatus'
+import { fetchSessionResults, buildCarsFromResults } from '@/app/lib/griiipResults'
 import type { SnapshotPayload } from '@/app/api/races/snapshot/route'
 import type { RaceData }        from '@/app/types/replay'
 
@@ -188,6 +189,14 @@ export function useTiming71(): UseTiming71Result {
   // True once we've received at least one rank update — until then, don't
   // overwrite restored snapshot data with empty live state.
   const hasLiveDataRef  = useRef(false)
+  // Restored cars[] from snapshot or REST /results — used by buildCars
+  // as fallback for participants whose live rank/lap/gap hasn't arrived yet.
+  // This keeps the leaderboard accurate from the moment of refresh,
+  // even before SignalR delivers per-car incremental updates.
+  const restoredCarsRef = useRef<Car[]>([])
+  // Cached REST /results — re-mapped to Car[] whenever participants arrive
+  // (REST results carry pid only, so they need participant metadata).
+  const restResultsRef  = useRef<Awaited<ReturnType<typeof fetchSessionResults>> | null>(null)
 
   useEffect(() => {
     latestRef.current = { cars, raceInfo, stats, messages, carStints, driverStats, lapHistory }
@@ -207,14 +216,22 @@ export function useTiming71(): UseTiming71Result {
       if (ls.bestLapMs && ls.bestLapMs < overallBest) overallBest = ls.bestLapMs
     })
 
+    // Build a lookup of restored cars (snapshot or REST results) by car number.
+    // Used as fallback when live data hasn't arrived for a participant yet.
+    const restoredByCarNum = new Map(
+      restoredCarsRef.current.map(c => [c.carNumStr, c]),
+    )
+
     const mapped = participants.map((p): Car => {
       const rank = rankRef.current.get(p.id)
       const gap  = gapRef.current.get(p.id)
       const laps = lapRef.current.get(p.id)
       const pits = pitCountRef.current.get(p.id) ?? 0
+      const restored = restoredByCarNum.get(p.carNumber)
 
+      const hasLiveStatus = !!(rank || laps)
       const status: Status = rank?.isDeleted ? 'OUT'
-        : (laps?.inPit ? 'PIT' : 'RUN')
+        : (laps?.inPit ? 'PIT' : (hasLiveStatus ? 'RUN' : (restored?.status ?? 'RUN')))
 
       const sectorEnter = sectorEnterTsRef.current.get(p.id)
       const sectorDurs  = sectorDurationRef.current.get(p.id)
@@ -227,25 +244,26 @@ export function useTiming71(): UseTiming71Result {
         : undefined
 
       return {
-        pos:          rank?.overallPosition ?? 1,
-        clsPos:       rank?.position        ?? 1,
+        // Live data takes priority; fallback to restored when missing
+        pos:          rank?.overallPosition ?? restored?.pos    ?? 1,
+        clsPos:       rank?.position        ?? restored?.clsPos ?? 1,
         carClass:     mapClass(p.classId),
         carNum:       parseInt(p.carNumber) || 0,
         carNumStr:    p.carNumber,
         team:         p.teamName,
         drivers:      p.drivers.map(d => d.threeLettersName).join(' / '),
-        tire:         '?',
-        laps:         rank?.lapNumber ?? 0,
-        lastLap:      formatMs(laps?.lastLapMs),
-        bestLap:      formatMs(laps?.bestLapMs),
-        gap:          gap ? formatGap(gap.gapToFirstMillis, gap.gapToFirstLaps) : 'Leader',
-        interval:     gap ? formatGap(gap.gapToAheadMillis, gap.gapToAheadLaps) : '--',
-        pitstops:     pits,
+        tire:         restored?.tire ?? '?',
+        laps:         rank?.lapNumber ?? restored?.laps ?? 0,
+        lastLap:      laps?.lastLapMs ? formatMs(laps.lastLapMs) : (restored?.lastLap ?? '--:--.---'),
+        bestLap:      laps?.bestLapMs ? formatMs(laps.bestLapMs) : (restored?.bestLap ?? '--:--.---'),
+        gap:          gap ? formatGap(gap.gapToFirstMillis, gap.gapToFirstLaps) : (restored?.gap ?? 'Leader'),
+        interval:     gap ? formatGap(gap.gapToAheadMillis, gap.gapToAheadLaps) : (restored?.interval ?? '--'),
+        pitstops:     pits || (restored?.pitstops ?? 0),
         status,
-        isFastestLap: !!(laps?.bestLapMs && laps.bestLapMs === overallBest),
-        lastColor:    laps?.lastColor ?? undefined,
-        bestColor:    laps?.bestColor ?? undefined,
-        sectorNum:    rank?.sectorNumber,
+        isFastestLap: !!(laps?.bestLapMs && laps.bestLapMs === overallBest) || (!laps && (restored?.isFastestLap ?? false)),
+        lastColor:    laps?.lastColor ?? restored?.lastColor,
+        bestColor:    laps?.bestColor ?? restored?.bestColor,
+        sectorNum:    rank?.sectorNumber ?? restored?.sectorNum,
         sectorEnterTs,
         sectorDurationMs,
       } as Car
@@ -474,6 +492,8 @@ export function useTiming71(): UseTiming71Result {
     sectorDurationRef.current = new Map()
     sectorBestRef.current     = new Map()
     lapHistoryRef.current     = new Map()
+    restoredCarsRef.current   = []
+    restResultsRef.current    = null
     clockRef.current        = null
     scheduleRef.current     = null
     flagRef.current         = 'GREEN'
@@ -504,6 +524,8 @@ export function useTiming71(): UseTiming71Result {
           if (!data || data.snapshots.length === 0) return
           const latest = data.snapshots[data.snapshots.length - 1]
           snapshotIdxRef.current = latest.idx + 1
+          // Cache restored cars[] as fallback for buildCars (Phase C).
+          restoredCarsRef.current = latest.cars
           setCars(latest.cars)
           setRaceInfo(latest.raceInfo)
           setStats(latest.stats)
@@ -524,6 +546,22 @@ export function useTiming71(): UseTiming71Result {
         setLiveSid(sid)
         sessionNameRef.current = name
         setStatus('connected')
+
+        // Phase A: fetch REST /results in parallel for an immediate, accurate
+        // snapshot of the current standings. All clients refreshing within
+        // the same few seconds get the same data. Mapping to Car[] needs
+        // participants, which may not have arrived yet — cache results and
+        // re-attempt mapping in onParticipants.
+        fetchSessionResults(sid)
+          .then(results => {
+            restResultsRef.current = results
+            const ps = Array.from(participantsRef.current.values())
+            if (ps.length > 0 && results.results?.length > 0) {
+              const restCars = buildCarsFromResults(results.results, ps)
+              if (restCars.length > 0) restoredCarsRef.current = restCars
+            }
+          })
+          .catch(() => { /* non-fatal */ })
       },
 
       onNoService: () => {
@@ -566,6 +604,13 @@ export function useTiming71(): UseTiming71Result {
         participantsRef.current = new Map(participants.map(p => [p.id, p]))
         for (const p of participants) {
           stintRef.current.set(p.id, [{ startLap: 1, endLap: null, tire: '?' }])
+        }
+        // If REST /results arrived first, map it to Car[] now that we have
+        // participant metadata (pid → carNumber/team/etc).
+        const cached = restResultsRef.current
+        if (cached?.results?.length) {
+          const restCars = buildCarsFromResults(cached.results, participants)
+          if (restCars.length > 0) restoredCarsRef.current = restCars
         }
       },
 
