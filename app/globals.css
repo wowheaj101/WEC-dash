@@ -155,15 +155,6 @@ html, body {
 }
 .ticker-track { animation: ticker 60s linear infinite; }
 
-/* Position-change flash for leaderboard rows.
-   Tinted overlay using --flash-color (set inline by LeaderboardRow). */
-@keyframes lb-flash-anim {
-  0%   { box-shadow: 0 0 0 1px hsl(var(--flash-color) / 0.0), inset 0 0 0 9999px hsl(var(--flash-color) / 0.0); }
-  10%  { box-shadow: 0 0 0 1px hsl(var(--flash-color) / 0.9), inset 0 0 0 9999px hsl(var(--flash-color) / 0.22); }
-  100% { box-shadow: 0 0 0 1px hsl(var(--flash-color) / 0.0), inset 0 0 0 9999px hsl(var(--flash-color) / 0.0); }
-}
-.lb-flash { animation: lb-flash-anim 1.2s ease-out; }
-
 /* ═══════════════════════════════════════════════════════════════════
    Chevron / clip-path utilities (angled TV edges)
    ═══════════════════════════════════════════════════════════════════ */

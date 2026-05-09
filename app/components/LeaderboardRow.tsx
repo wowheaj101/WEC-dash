@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { cn } from '@/app/lib/utils'
 import type { Car } from '@/app/types/race'
 import TireBadge from './TireBadge'
@@ -16,14 +15,11 @@ const CLS_COLOR: Record<string, string> = {
   LMGT3:    'hsl(var(--lmgt3))',
 }
 
-const FLASH_DURATION_MS = 1200
-
 interface Props {
-  car:       Car
-  deltaPos?: number   // +N = positions gained, -N = positions lost
+  car: Car
 }
 
-export default function LeaderboardRow({ car, deltaPos = 0 }: Props) {
+export default function LeaderboardRow({ car }: Props) {
   const isPit = car.status === 'PIT'
   const isLeader = car.clsPos === 1
 
@@ -36,39 +32,20 @@ export default function LeaderboardRow({ car, deltaPos = 0 }: Props) {
     ? 'text-fastest'
     : isPit ? 'text-pit' : 'text-fg0'
 
-  // Flash effect — restart on every new delta event by tracking a counter
-  const [flashId, setFlashId] = useState(0)
-  useEffect(() => {
-    if (deltaPos !== 0) {
-      setFlashId(id => id + 1)
-    }
-  }, [deltaPos])
-
-  const flashing = deltaPos !== 0
-  const flashColor = deltaPos > 0 ? 'lmgt3' : 'danger'  // green up, red down
-
   return (
     <div
-      data-car-num={car.carNumStr}
-      className={cn(
-        'lb-row grid items-stretch h-[44px] mb-[3px] relative',
-        flashing && 'lb-flash',
-      )}
-      data-flash-id={flashId}
+      className="lb-row grid items-stretch h-[44px] mb-[3px]"
       style={{
         gridTemplateColumns: GRID_COLS,
         background: isLeader
           ? 'linear-gradient(90deg, rgba(255,46,46,0.10) 0%, hsl(var(--bg-2)) 60%)'
           : 'hsl(var(--bg-2))',
         border: isLeader ? '1px solid hsl(var(--hypercar))' : '1px solid hsl(var(--line-1))',
-        // Override flash color via CSS custom property
-        ['--flash-color' as string]: `var(--${flashColor})`,
-        animationDuration: flashing ? `${FLASH_DURATION_MS}ms` : undefined,
       }}
     >
       {/* POS — class position (chevron with class color) */}
       <div
-        className="disp flex items-center justify-center font-black text-white text-[18px] relative"
+        className="disp flex items-center justify-center font-black text-white text-[18px]"
         style={{
           background: CLS_COLOR[car.carClass] ?? 'hsl(var(--bg-3))',
           clipPath: 'polygon(0 0, 100% 0, calc(100% - 11px) 100%, 0 100%)',
@@ -76,21 +53,6 @@ export default function LeaderboardRow({ car, deltaPos = 0 }: Props) {
       >
         <span className="text-[10px] opacity-70 mr-0.5">P</span>
         {car.clsPos}
-
-        {/* Delta badge — appears for DELTA_DISPLAY_MS after position change */}
-        {deltaPos !== 0 && (
-          <span
-            className={cn(
-              'absolute -top-1 -right-1 mono text-[10px] font-bold px-1 py-px rounded leading-none',
-              deltaPos > 0
-                ? 'bg-[hsl(var(--lmgt3))] text-white'
-                : 'bg-[hsl(var(--danger))] text-white',
-            )}
-            style={{ minWidth: 20, textAlign: 'center' }}
-          >
-            {deltaPos > 0 ? `▲${deltaPos}` : `▼${Math.abs(deltaPos)}`}
-          </span>
-        )}
       </div>
 
       {/* CLASS + overall pos */}
