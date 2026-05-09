@@ -111,6 +111,17 @@ function formatSectorMs(ms: number | null): string {
   return (ms / 1000).toFixed(3)
 }
 
+/** True when restored cars[] looks like real standings data.
+ *  Discards datasets where every car has the same clsPos or gap (which
+ *  happens when REST /results returns finishedAt=1 for in-progress sessions). */
+function isCarsRestoreValid(cars: Car[]): boolean {
+  if (cars.length === 0) return false
+  if (cars.length === 1) return true
+  const uniqueClsPos = new Set(cars.map(c => c.clsPos))
+  const uniqueGap    = new Set(cars.map(c => c.gap))
+  return uniqueClsPos.size > 1 || uniqueGap.size > 1
+}
+
 // ── Internal state types ──────────────────────────────────────────
 
 interface LapState {
@@ -217,10 +228,12 @@ export function useTiming71(): UseTiming71Result {
     })
 
     // Build a lookup of restored cars (snapshot or REST results) by car number.
-    // Used as fallback when live data hasn't arrived for a participant yet.
-    const restoredByCarNum = new Map(
-      restoredCarsRef.current.map(c => [c.carNumStr, c]),
-    )
+    // Validity is enforced upstream in isCarsRestoreValid, but re-check here as
+    // a safety net against stale or partial data sneaking in.
+    const restoredCars = restoredCarsRef.current
+    const restoredByCarNum = isCarsRestoreValid(restoredCars)
+      ? new Map(restoredCars.map(c => [c.carNumStr, c]))
+      : new Map<string, Car>()
 
     const mapped = participants.map((p): Car => {
       const rank = rankRef.current.get(p.id)
@@ -558,7 +571,9 @@ export function useTiming71(): UseTiming71Result {
             const ps = Array.from(participantsRef.current.values())
             if (ps.length > 0 && results.results?.length > 0) {
               const restCars = buildCarsFromResults(results.results, ps)
-              if (restCars.length > 0) restoredCarsRef.current = restCars
+              if (restCars.length > 0 && isCarsRestoreValid(restCars)) {
+                restoredCarsRef.current = restCars
+              }
             }
           })
           .catch(() => { /* non-fatal */ })
@@ -610,7 +625,9 @@ export function useTiming71(): UseTiming71Result {
         const cached = restResultsRef.current
         if (cached?.results?.length) {
           const restCars = buildCarsFromResults(cached.results, participants)
-          if (restCars.length > 0) restoredCarsRef.current = restCars
+          if (restCars.length > 0 && isCarsRestoreValid(restCars)) {
+            restoredCarsRef.current = restCars
+          }
         }
       },
 
