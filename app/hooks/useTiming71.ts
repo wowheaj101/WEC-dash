@@ -314,9 +314,22 @@ export function useTiming71(): UseTiming71Result {
   const buildRaceInfo = useCallback((): RaceInfo => {
     const clock    = clockRef.current
     const schedule = scheduleRef.current
-    const elapsed  = clock?.elapsedTimeMillisNow ?? 0
     const total    = schedule?.lengthLimit?.timeLimitSeconds ?? 21600
     const totalMs  = total * 1000
+
+    // Prefer live SignalR clock; if it hasn't arrived (or session-clock channel
+    // join failed), fall back to computing elapsed from session startTime.
+    // This makes the countdown keep ticking even without lv-session-clock.
+    let elapsed = clock?.elapsedTimeMillisNow ?? 0
+    if (elapsed === 0 || (clock && Date.now() - new Date(clock.startTime).getTime() > elapsed + 5000)) {
+      const startTimeStr = clock?.startTime ?? schedule?.clock?.startTime
+      if (startTimeStr) {
+        const startMs = new Date(startTimeStr).getTime()
+        if (Number.isFinite(startMs) && startMs > 0) {
+          elapsed = Math.max(elapsed, Date.now() - startMs)
+        }
+      }
+    }
     const remaining = Math.max(0, totalMs - elapsed)
 
     return {
@@ -887,6 +900,17 @@ export function useTiming71(): UseTiming71Result {
     const t = setTimeout(() => startConnection(), 30_000)
     return () => clearTimeout(t)
   }, [status, startConnection])
+
+  // 1Hz tick to refresh raceInfo.elapsed/remaining even when SignalR clock
+  // events stop arriving (e.g. session-clock channel join failed).
+  // buildRaceInfo() falls back to startTime-based computation.
+  useEffect(() => {
+    if (status !== 'live' && status !== 'showing_previous') return
+    const tick = setInterval(() => {
+      setRaceInfo(buildRaceInfo())
+    }, 1000)
+    return () => clearInterval(tick)
+  }, [status, buildRaceInfo])
 
   return { status, serviceName, liveSid, cars, raceInfo, stats, messages, carStints, driverStats, lapHistory, isLive, reconnect: startConnection }
 }
