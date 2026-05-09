@@ -10,7 +10,9 @@
  */
 
 const API_ROOT  = '/api/griiip'
-const HUB_URL   = 'https://insights.griiip.com/live-session-stream'
+// Use rewrite proxy for SignalR to avoid CORS blocks from insights.griiip.com.
+// In dev, '/api/griiip/...' is proxied by next.config.js rewrites.
+const HUB_URL   = '/api/griiip/live-session-stream'
 const WEC_SERIES_ID = 10
 
 const CHANNELS = [
