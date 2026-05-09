@@ -1,6 +1,6 @@
-import { NextResponse }  from 'next/server'
-import { head, put }    from '@vercel/blob'
-import { upsertIndex }  from '@/app/lib/raceStore'
+import { NextResponse }                  from 'next/server'
+import { put }                           from '@vercel/blob'
+import { upsertIndex, getRace }          from '@/app/lib/raceStore'
 import type { RaceData, RaceMeta, RaceSnapshot } from '@/app/types/replay'
 
 export interface SnapshotPayload {
@@ -61,11 +61,10 @@ export async function POST(req: Request) {
       snapshots: [],
     }
 
-    const existing = await head(path).catch(() => null)
-    if (existing) {
-      const res = await fetch(existing.url, { cache: 'no-store' })
-      data = (await res.json()) as RaceData
-    }
+    // Read existing race data via authenticated blob fetcher
+    // (private blobs return 403 if accessed by URL directly)
+    const existing = await getRace(year, round)
+    if (existing) data = existing
 
     const idx = data.snapshots.findIndex(s => s.idx === snapshot.idx)
     if (idx >= 0) data.snapshots[idx] = snapshot
