@@ -83,6 +83,7 @@ export async function POST(req: Request) {
       access:          'private',
       contentType:     'application/json',
       addRandomSuffix: false,
+      allowOverwrite:  true,
     })
 
     await upsertIndex(meta)

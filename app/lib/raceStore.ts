@@ -83,6 +83,7 @@ export async function upsertIndex(meta: RaceMeta): Promise<void> {
     access:          'private',
     contentType:     'application/json',
     addRandomSuffix: false,
+    allowOverwrite:  true,
   })
 }
 
@@ -99,5 +100,6 @@ export async function upsertRace(data: RaceData): Promise<void> {
     access:          'private',
     contentType:     'application/json',
     addRandomSuffix: false,
+    allowOverwrite:  true,
   })
 }
