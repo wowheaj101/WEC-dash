@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Car, CarClass } from '@/app/types/race'
+import type { ConnStatus } from '@/app/hooks/useTiming71'
 import LeaderboardRow from './LeaderboardRow'
 
 const CLASS_ORDER: CarClass[] = ['HYPERCAR', 'LMP2', 'LMGT3']
@@ -14,12 +15,63 @@ const CLASS_LABELS: Record<CarClass, string> = {
 // How long delta badges + flash effects stay visible after a position change
 const DELTA_DISPLAY_MS = 5000
 
+// Skeleton row count per class while waiting for first data
+const SKELETON_ROWS_PER_CLASS = 4
+
+const STATUS_TEXT: Record<ConnStatus, string> = {
+  idle:             '초기화 중...',
+  connecting:       'WEC 서버 검색 중...',
+  discovering:      'SignalR 핸드셰이크 중...',
+  connected:        '채널 가입 중...',
+  live:             '데이터 수신 대기 중...',
+  no_service:       '진행 중인 라이브 세션 없음',
+  showing_previous: '이전 라운드 스냅샷 로딩...',
+  disconnected:     '재연결 중...',
+  error:            '연결 오류 — 재시도 중',
+}
+
+function LeaderboardSkeleton({ status }: { status: ConnStatus }) {
+  const statusText = STATUS_TEXT[status] ?? '대기 중...'
+
+  return (
+    <div className="flex flex-col gap-3 px-2 pb-3">
+      {(['HYPERCAR', 'LMP2', 'LMGT3'] as const).map(cls => (
+        <div key={cls}>
+          <div className="text-[10px] font-bold tracking-[2px] uppercase text-fg4 px-2 py-1.5 mb-1">
+            {cls === 'LMGT3' ? 'LM GT3' : cls}
+          </div>
+          {Array.from({ length: SKELETON_ROWS_PER_CLASS }).map((_, i) => (
+            <div
+              key={i}
+              className="h-[44px] mb-[3px] rounded-sm animate-pulse"
+              style={{
+                background: 'hsl(var(--bg-2))',
+                border: '1px solid hsl(var(--line-1))',
+                opacity: 0.6 - i * 0.1,
+              }}
+            />
+          ))}
+        </div>
+      ))}
+      <div className="text-center text-[10px] text-fg3 mono pt-1 flex items-center justify-center gap-2">
+        <span className="inline-block w-1.5 h-1.5 rounded-full bg-warning dot-blink" />
+        {statusText}
+      </div>
+    </div>
+  )
+}
+
 interface PositionMemory {
   clsPos: number
   carClass: CarClass
 }
 
-export default function Leaderboard({ cars }: { cars: Car[] }) {
+interface LeaderboardProps {
+  cars:    Car[]
+  status?: ConnStatus
+}
+
+export default function Leaderboard({ cars, status = 'idle' }: LeaderboardProps) {
   const leaderLap = cars.length > 0 ? cars[0].laps : 0
 
   // Group cars by class, sorted by class position
@@ -147,11 +199,7 @@ export default function Leaderboard({ cars }: { cars: Car[] }) {
             )
           })}
 
-          {cars.length === 0 && (
-            <div className="py-10 text-center text-[11px] text-fg3">
-              데이터 대기 중...
-            </div>
-          )}
+          {cars.length === 0 && <LeaderboardSkeleton status={status} />}
         </div>
       </div>
     </div>

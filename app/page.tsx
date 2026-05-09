@@ -261,7 +261,7 @@ export default function Page() {
             )}
             {sessionBar}
             <StatsBar stats={displayStats} />
-            <Leaderboard cars={displayCars} />
+            <Leaderboard cars={displayCars} status={status} />
             <Legend />
             <MessageFeed messages={displayMessages} compact />
           </TabsContent>

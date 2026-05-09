@@ -201,22 +201,31 @@ export class GriiipClient {
     this.cb.onServiceFound(sid, name)
     this.cb.onSchedule(schedule)
 
-    // 2. Load participants
-    try {
-      const res          = await fetch(`${API_ROOT}/meta/sessions/${sid}/participants`)
-      const participants = (await res.json()) as GriiipParticipant[]
-      this.cb.onParticipants(participants)
-    } catch { /* non-fatal */ }
+    // 2. Kick off participants fetch + SignalR import in PARALLEL.
+    //    Both are independent and slow (~200-500ms each over rewrite).
+    const participantsPromise = fetch(`${API_ROOT}/meta/sessions/${sid}/participants`)
+      .then(r => r.json() as Promise<GriiipParticipant[]>)
+      .then(participants => { this.cb.onParticipants(participants) })
+      .catch(() => { /* non-fatal */ })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const signalRPromise = import('@microsoft/signalr') as Promise<any>
+
+    const [, signalR] = await Promise.all([participantsPromise, signalRPromise])
 
     if (this.destroyed) return
 
-    // 3. Connect SignalR (browser-only, dynamic import)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const signalR = await import('@microsoft/signalr') as any
-    const { HubConnectionBuilder, LogLevel } = signalR
+    // 3. Build hub. Prefer WebSocket (lowest latency); SignalR falls back
+    //    to ServerSentEvents → LongPolling automatically if WS unavailable.
+    const { HubConnectionBuilder, LogLevel, HttpTransportType } = signalR
 
     const hub = new HubConnectionBuilder()
-      .withUrl(HUB_URL)
+      .withUrl(HUB_URL, {
+        transport:
+          HttpTransportType.WebSockets |
+          HttpTransportType.ServerSentEvents |
+          HttpTransportType.LongPolling,
+      })
       .withAutomaticReconnect()
       .configureLogging(LogLevel.Warning)
       .build()
@@ -256,15 +265,16 @@ export class GriiipClient {
 
     this.cb.onConnected()
 
-    // 5. Join all channels
+    // 5. Join all channels in PARALLEL (8 round-trips → 1 round-trip duration).
+    const joinResults = await Promise.allSettled(
+      CHANNELS.map(ch => hub.invoke('JoinGroup', `SID-${sid}-${ch}`)),
+    )
     const channelErrors: string[] = []
-    for (const ch of CHANNELS) {
-      try {
-        await hub.invoke('JoinGroup', `SID-${sid}-${ch}`)
-      } catch (err) {
-        channelErrors.push(ch)
-        console.warn(`[SignalR] Failed to join channel ${ch}:`, err)
-      }
+    joinResults.forEach((r, i) => {
+      if (r.status === 'rejected') channelErrors.push(CHANNELS[i])
+    })
+    if (channelErrors.length > 0) {
+      console.warn(`[SignalR] Failed to join channels:`, channelErrors)
     }
 
     if (channelErrors.length === CHANNELS.length) {
