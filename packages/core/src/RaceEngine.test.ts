@@ -108,6 +108,24 @@ describe('RaceEngine — message ids', () => {
   })
 })
 
+describe('RaceEngine — restored messages', () => {
+  it('seeds messages and lets live pit events append', () => {
+    const engine = seededEngine()
+    engine.setMessages([{ id: 1, timestamp: '00:00:00', type: 'general', text: 'restored' }])
+    engine.applyPitIn({ sid: 1, pid: 1, carNumber: '7', classId: 'HYPERCAR', lapNumber: 12, elapsedTimeMillis: 0, ts: new Date(NOW).toISOString() })
+    const msgs = engine.getMessages()
+    expect(msgs[0].text).toBe('restored')
+    expect(msgs.at(-1)!.text).toContain('피트 인')
+    expect(msgs.length).toBe(2)
+  })
+})
+
+describe('RaceEngine — participants getter', () => {
+  it('exposes the roster for REST result mapping', () => {
+    expect(seededEngine().getParticipants().map(p => p.carNumber)).toEqual(['7', '8'])
+  })
+})
+
 describe('RaceEngine — reset', () => {
   it('clears live state', () => {
     const engine = seededEngine()

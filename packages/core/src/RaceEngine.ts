@@ -105,6 +105,10 @@ export class RaceEngine {
   setRound(round: number): void { this.cfg.round = round }
   /** REST /results or restored snapshot cars used as fallback in buildCars. */
   setRestoredCars(cars: Car[]): void { this.restoredCars = cars }
+  /** Seed the message feed from a restored snapshot. Live events append after. */
+  setMessages(messages: Message[]): void { this.messages = messages.slice(-this.cfg.maxMessages) }
+  /** Current participant roster (for REST results → Car[] mapping in the host). */
+  getParticipants(): GriiipParticipant[] { return Array.from(this.participants.values()) }
   get receivedLiveData(): boolean { return this.hasLiveData }
 
   /** Reset all live state (mirrors startConnection ref reset). Config is kept. */
