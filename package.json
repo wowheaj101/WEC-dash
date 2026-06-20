@@ -2,6 +2,9 @@
   "name": "wec-dashboard",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -10,7 +13,8 @@
     "import:timing71": "tsx scripts/import-timing71-recording.ts",
     "import:griiip": "tsx scripts/import-griiip-results.ts",
     "push:races": "tsx --env-file=.env.local scripts/push-races-to-blob.ts",
-    "extract:tracks": "tsx scripts/extract-tracks.ts"
+    "extract:tracks": "tsx scripts/extract-tracks.ts",
+    "test:core": "npm test --workspace=@wec/core"
   },
   "dependencies": {
     "@microsoft/signalr": "^10.0.0",
@@ -22,6 +26,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@vercel/analytics": "^2.0.1",
     "@vercel/blob": "^2.3.3",
+    "@wec/core": "*",
     "autobahn": "^26.3.1",
     "autobahn-browser": "^22.11.1",
     "class-variance-authority": "^0.7.1",

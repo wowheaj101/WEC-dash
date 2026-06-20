@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // @wec/core ships TypeScript source (no build step); Next must transpile it.
+  transpilePackages: ['@wec/core'],
   async rewrites() {
     return [
       {

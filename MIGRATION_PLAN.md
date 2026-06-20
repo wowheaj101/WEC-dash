@@ -149,26 +149,28 @@ create policy "public read live_state" on live_state for select using (true);
 
 ## 4. 리포지토리 구조 (모노레포 전환)
 
-**권장: pnpm workspace 로 코어 추출**
+**✅ 채택 — npm workspaces** (pnpm 미설치 + npm 11이 워크스페이스 기본 지원 → 새 도구 도입 마찰 회피). 루트 `package.json`에 `"workspaces": ["packages/*"]`.
+
+**현재(Phase 0 적용 완료) 레이아웃** — 위험을 줄이려 웹 앱은 `WEC-dash/` 루트에 그대로 두고 `packages/core`만 추가:
 
 ```
-WEC-livetiming/
-├─ package.json            (workspace 루트)
-├─ pnpm-workspace.yaml
-├─ packages/
-│  └─ core/                # ★ 프레임워크 비종속
-│     ├─ RaceEngine.ts     # 정규화 상태머신 (build* 로직 이전)
-│     ├─ griiipClient.ts   # 현 app/lib/griiipClient.ts 이동
-│     ├─ types.ts          # race.ts / replay.ts 공유 타입
-│     └─ format.ts         # formatMs/formatGap/mapFlag/mapClass …
-├─ apps/
-│  ├─ web/                 # 현 WEC-dash (Next.js, Vercel 배포)
-│  └─ ingest/              # ★ 신규 Render 워커
-│     ├─ src/index.ts      # GriiipClient→RaceEngine→Supabase
-│     └─ package.json
+WEC-dash/                    ← git 루트 = 워크스페이스 루트 = 웹 앱(Next.js, Vercel)
+├─ package.json              workspaces:["packages/*"], deps:{ "@wec/core":"*" }
+├─ next.config.js            transpilePackages:['@wec/core']
+├─ tsconfig.json             paths:{"@wec/core":...}, exclude:["packages"]
+├─ app/ …                    (웹 앱 — 미변경)
+└─ packages/
+   └─ core/                  ★ 프레임워크 비종속 (@wec/core)
+      ├─ src/types.ts        공유 UI 타입 + Griiip 입력 타입
+      ├─ src/format.ts       formatMs/formatGap/mapFlag/mapClass …
+      ├─ src/RaceEngine.ts   정규화 상태머신 (build* 로직 이전)
+      ├─ src/index.ts        배럴
+      └─ src/*.test.ts       Vitest 골든 테스트 (20개 통과)
 ```
 
-> **단순 대안:** 모노레포가 부담되면 `WEC-dash/` 유지 + `WEC-dash/server/` 디렉터리에 ingest를 두고, `core`는 `WEC-dash/app/lib/core/`를 양쪽이 import. Render는 Root Directory만 가리키면 됨. 다만 Next.js 빌드에 server 코드가 섞이지 않도록 `tsconfig`/번들 경계를 분리해야 함. **장기적으론 workspace가 깔끔.**
+**다음 목표 레이아웃 (Phase 2, ingest 추가 시):** `WEC-dash/app` → `apps/web/`로 이동하고 `apps/ingest/`(Render 워커)를 추가해 `apps/* + packages/*` 대칭 구조로 전환. 이때 Vercel Root Directory를 `apps/web`로 변경해야 함(대시보드 설정).
+
+> 웹 앱 대규모 이동을 Phase 0에서 미룬 이유: 50+ 파일 이동 + Vercel 설정 변경은 빌드 검증 없이 위험. 코어 공유라는 핵심 가치는 현재 레이아웃으로 이미 달성됨(웹·워커 모두 `@wec/core` import 가능).
 
 ---
 
@@ -179,25 +181,28 @@ WEC-livetiming/
 ### Phase 0 — `RaceEngine` 추출 (백엔드 없이, 동작 변화 0)
 **목표:** 정규화 로직을 React에서 분리. 이것만 해도 테스트·재사용성 확보.
 
-- `useTiming71.ts`의 `buildCars`/`buildStats`/`buildRaceInfo`/`buildCarStints`/`buildDriverStats`와 `formatMs`/`formatGap`/`mapFlag`/`mapClass`, 그리고 콜백 안의 ref 누적 로직(`onRanks`/`onGaps`/`onLap`/`onClock`/`onFlag`/`onPit*`)을 **`packages/core/RaceEngine.ts`** 로 이전.
-- `RaceEngine` API:
+**Part 1 — `packages/core` 추출 + 검증 ✅ 완료**
+- npm workspace 골격 + `@wec/core` 패키지 생성(§4).
+- `RaceEngine` 추출 — `useTiming71.ts`의 `buildCars`/`buildStats`/`buildRaceInfo`/`buildCarStints`/`buildDriverStats`/`buildLapHistory` + ref 누적 로직(`applyRanks`/`applyGaps`/`applyLap`/`applyClock`/`applyFlag`/`applyRaceLog`/`applyPitIn`/`applyPitOut`)을 React/calendar 비종속으로 이전. 라운드·세션명·날씨는 config 주입, `now()` 주입으로 결정적 테스트 가능.
   ```ts
   class RaceEngine {
-    applyParticipants(p), applyRanks(items), applyGaps(items),
-    applyLap(item), applyClock(item), applyFlag(item),
-    applyRaceLog(item), applyPitIn(item), applyPitOut(item),
-    reset()
-    snapshot(): RaceState   // { cars, raceInfo, stats, carStints, driverStats, messages }
+    applyParticipants/applyRanks/applyGaps/applyLap/applyClock/applyFlag/applyRaceLog/applyPitIn/applyPitOut/applySchedule
+    setSessionName/setRound/setRestoredCars/reset
+    snapshot(): RaceState  // { cars, raceInfo, stats, carStints, driverStats, messages, lapHistory }
   }
   ```
-- `useTiming71.ts`는 당분간 그대로 클라에서 `RaceEngine` 인스턴스를 만들어 사용(GriiipClient 콜백 → engine.apply* → engine.snapshot()).
-- **품질 개선 동시 적용:**
-  - 🔴 메시지 `id: Date.now()` → 단조 카운터/`crypto.randomUUID()` (key 충돌 제거).
-  - 🟠 `buildStats`가 내부에서 `buildCars`를 또 호출하는 이중 계산 제거 → 한 번 계산해 공유.
-  - 🟠 `flush`를 매 이벤트 → **1Hz 배치**(rAF 또는 고정 tick)로 변경.
-- **테스트:** `packages/core`에 **Vitest** 도입. 골든 입력(녹화된 이벤트 시퀀스)→`snapshot()` 출력 스냅샷 테스트.
-- **완료 기준:** 기존 UI가 동일하게 동작. `pnpm test` 통과. 배포는 Vercel 그대로.
+- **품질 개선 반영:** 🟠 `buildStats`가 `buildCars`를 다시 호출하던 이중 계산 제거(snapshot이 cars 1회 계산 후 재사용). 🔴 메시지 단조 id는 이미 적용돼 있어 그대로 이식.
+- **테스트:** Vitest 20개(포맷터 13 + RaceEngine 7) 통과. `npm run test:core`.
+- **검증:** core 타입체크 통과 · 루트 `npm install`(워크스페이스) 정상 · 웹 `next build` `✓ Compiled successfully`(배선이 기존 빌드를 깨지 않음 확인).
+
+**Part 2 — `useTiming71` 통합 (다음 단계, 빌드 검증 가능)**
+- `useTiming71.ts`가 GriiipClient 콜백 → `engine.apply*` → `engine.snapshot()`을 사용하도록 교체. 로컬 build* 함수와 중복 포맷터 제거.
+- 🟠 `flush`를 매 이벤트 → **1Hz 배치**(rAF 또는 고정 tick)로 변경.
+- `app/types/race.ts`를 `@wec/core` 재export로 전환(기존 `@/app/types/race` import 호환).
+- **완료 기준:** 기존 UI 동일 동작 + `next build` 통과. 배포는 Vercel 그대로.
 - **롤백:** 코어 import만 되돌리면 됨.
+
+> 참고: 원격 코드에는 REST 정규화(`griiipResults.ts`)도 존재 → Part 2 또는 별도 단계에서 동일 엔진/포맷터로 수렴시킬 것.
 
 ### Phase 1 — Supabase 셋업 + `raceStore` 교체 (다시보기 경로부터)
 **목표:** 저장 계층을 Blob/로컬파일 → Supabase로. 프론트 API 표면(`/api/races/*`)은 유지.
@@ -306,7 +311,8 @@ WEC-livetiming/
 ## 9. 작업 순서 요약 (체크리스트)
 
 - [x] **결정①** Render = Free + cron keep-alive / **결정②** 라이브 = Supabase Realtime Broadcast
-- [ ] Phase 0: `packages/core` 추출, `RaceEngine`, Vitest, 메시지 id·flush·이중계산 픽스
+- [x] Phase 0 Part 1: npm workspace + `@wec/core`(RaceEngine·포맷터·타입) 추출, Vitest 20개, 이중계산 픽스 — core 테스트 + 웹 빌드 검증 완료
+- [ ] Phase 0 Part 2: `useTiming71`을 `@wec/core`로 교체 + flush 1Hz 배치 + `app/types/race.ts` 재export
 - [ ] Phase 1: Supabase 생성+DDL, `raceStore` Supabase 교체, 샘플 데이터 seed
 - [ ] Phase 2: `apps/ingest` 작성, Render 배포, keep-alive, 단일 writer 기록 시작
 - [ ] Phase 3: `useTiming71` Supabase 구독으로 교체(플래그), 라이브 비교 검증
