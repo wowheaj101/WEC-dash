@@ -1,7 +1,6 @@
-import { NextResponse }                  from 'next/server'
-import { put }                           from '@vercel/blob'
-import { upsertIndex, getRace }          from '@/app/lib/raceStore'
-import type { RaceData, RaceMeta, RaceSnapshot } from '@/app/types/replay'
+import { NextResponse }     from 'next/server'
+import { appendSnapshot }   from '@/app/lib/raceStore'
+import type { RaceMeta, RaceSnapshot } from '@/app/types/replay'
 
 export interface SnapshotPayload {
   year:        number
@@ -11,10 +10,6 @@ export interface SnapshotPayload {
   countryFlag: string
   duration:    string
   snapshot:    RaceSnapshot
-}
-
-function racePath(year: number, round: number) {
-  return `wec-dashboard/races/${year}/r${round}.json`
 }
 
 const MAX_BODY_BYTES = 512 * 1024  // 512 KB
@@ -48,47 +43,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'invalid payload' }, { status: 400 })
     }
 
-    const path = racePath(year, round)
-
-    let data: RaceData = {
-      meta: {
-        id: `${year}-r${round}`, year, round, name, circuit,
-        countryFlag, duration,
-        date:      new Date(snapshot.ts).toISOString().slice(0, 10),
-        snapshots: 0,
-        updatedAt: Date.now(),
-      },
-      snapshots: [],
-    }
-
-    // Read existing race data via authenticated blob fetcher
-    // (private blobs return 403 if accessed by URL directly)
-    const existing = await getRace(year, round)
-    if (existing) data = existing
-
-    const idx = data.snapshots.findIndex(s => s.idx === snapshot.idx)
-    if (idx >= 0) data.snapshots[idx] = snapshot
-    else data.snapshots.push(snapshot)
-
-    data.snapshots.sort((a, b) => a.idx - b.idx)
-
     const meta: RaceMeta = {
-      ...data.meta,
-      snapshots: data.snapshots.length,
+      id: `${year}-r${round}`, year, round, name, circuit,
+      countryFlag, duration,
+      date:      new Date(snapshot.ts).toISOString().slice(0, 10),
+      snapshots: 0,            // appendSnapshot recomputes the real count
       updatedAt: Date.now(),
     }
-    data.meta = meta
 
-    await put(path, JSON.stringify(data), {
-      access:          'private',
-      contentType:     'application/json',
-      addRandomSuffix: false,
-      allowOverwrite:  true,
-    })
+    const snapshots = await appendSnapshot(meta, snapshot)
 
-    await upsertIndex(meta)
-
-    return NextResponse.json({ ok: true, snapshots: data.snapshots.length })
+    return NextResponse.json({ ok: true, snapshots })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     const stack   = err instanceof Error ? err.stack   : undefined
@@ -96,7 +61,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: false,
       error: message,
-      hasToken: !!process.env.BLOB_READ_WRITE_TOKEN,
+      hasToken: !!(process.env.SUPABASE_URL || process.env.BLOB_READ_WRITE_TOKEN),
     }, { status: 500 })
   }
 }
